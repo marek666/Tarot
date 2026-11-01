@@ -1,20 +1,25 @@
 <script lang="ts">
   import { onDestroy } from 'svelte'
-  import type { CardOrientation } from '../lib/deckModes.ts'
+  import { getMeaningForOrientation } from '../lib/studyProgress.ts'
   import { getSwipeDirection, type SwipeDirection } from '../lib/swipeGesture.ts'
   import type { TarotCard as TarotCardData } from '../types/tarot.ts'
+  import type { CardOrientation } from '../types/trainer.ts'
 
   let {
     card,
     orientation,
     onNavigate,
+    studyMode = false,
+    revealed = false,
   }: {
     card: TarotCardData
     orientation: CardOrientation
     onNavigate: (direction: SwipeDirection) => void
+    studyMode?: boolean
+    revealed?: boolean
   } = $props()
 
-  const meaning = $derived(orientation === 'reversed' ? card.reversed : card.upright)
+  const meaning = $derived(getMeaningForOrientation(card, orientation))
   const orientationLabel = $derived(orientation === 'reversed' ? 'Obrácená poloha' : 'Přímá poloha')
 
   let isFlipped = $state(false)
@@ -44,22 +49,18 @@
     }
   }
 
-  function flipCard(event: MouseEvent): void {
-    if (suppressNextClick) {
-      event.preventDefault()
-      suppressNextClick = false
-      return
-    }
-
-    if (isAnimating) return
+  function setFlipped(nextFlipped: boolean): void {
+    if (isAnimating || isFlipped === nextFlipped) return
 
     isAnimating = true
-    isFlipped = !isFlipped
+    isFlipped = nextFlipped
 
-    window.requestAnimationFrame(() => {
-      const visibleButton = isFlipped ? backButton : frontButton
-      visibleButton?.focus({ preventScroll: true })
-    })
+    if (!studyMode) {
+      window.requestAnimationFrame(() => {
+        const visibleButton = isFlipped ? backButton : frontButton
+        visibleButton?.focus({ preventScroll: true })
+      })
+    }
 
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       window.requestAnimationFrame(unlockFlip)
@@ -67,6 +68,17 @@
     }
 
     unlockTimer = window.setTimeout(unlockFlip, 750)
+  }
+
+  function flipCard(event: MouseEvent): void {
+    if (suppressNextClick) {
+      event.preventDefault()
+      suppressNextClick = false
+      return
+    }
+
+    if (studyMode) return
+    setFlipped(!isFlipped)
   }
 
   function finishAnimation(event: TransitionEvent): void {
@@ -144,6 +156,10 @@
     )
   }
 
+  $effect(() => {
+    if (studyMode && revealed) setFlipped(true)
+  })
+
   onDestroy(() => {
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
     if (suppressClickTimer !== undefined) window.clearTimeout(suppressClickTimer)
@@ -176,9 +192,13 @@
       <button
         bind:this={frontButton}
         type="button"
+        class:study-front={studyMode}
         class="card-face card-front"
-        aria-label={`Otočit kartu ${card.nameCs}, ${orientationLabel.toLocaleLowerCase('cs')}, a zobrazit význam`}
+        aria-label={studyMode
+          ? `Karta ${card.nameCs}, ${orientationLabel.toLocaleLowerCase('cs')}; význam odhalíte tlačítkem pod kartou`
+          : `Otočit kartu ${card.nameCs}, ${orientationLabel.toLocaleLowerCase('cs')}, a zobrazit význam`}
         aria-hidden={isFlipped}
+        aria-disabled={studyMode}
         disabled={isFlipped}
         onclick={flipCard}
       >
@@ -198,7 +218,7 @@
           type="button"
           class="back-flip-target"
           aria-label={`Otočit kartu ${card.nameCs} zpět na ilustraci`}
-          disabled={!isFlipped}
+          disabled={!isFlipped || studyMode}
           onclick={flipCard}
         ></button>
 
@@ -219,7 +239,9 @@
             <p>{meaning.description}</p>
           </details>
 
-          <p class="flip-hint" aria-hidden="true">Klepnutím mimo výklad otočíte zpět</p>
+          {#if !studyMode}
+            <p class="flip-hint" aria-hidden="true">Klepnutím mimo výklad otočíte zpět</p>
+          {/if}
         </div>
       </section>
     </div>
@@ -310,6 +332,10 @@
 
   .card-front {
     display: block;
+  }
+
+  .card-front.study-front {
+    cursor: default;
   }
 
   .card-front img {

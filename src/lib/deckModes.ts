@@ -1,4 +1,6 @@
-export type CardOrientation = 'upright' | 'reversed'
+import type { CardOrientation } from '../types/trainer.ts'
+
+export type { CardOrientation } from '../types/trainer.ts'
 export type RandomSource = () => number
 
 function sampleRandom(random: RandomSource): number {

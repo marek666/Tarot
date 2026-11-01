@@ -4,16 +4,33 @@
   import PwaUpdatePrompt from './components/PwaUpdatePrompt.svelte'
   import TarotCard from './components/TarotCard.svelte'
   import { tarotDeck } from './data/tarotDeck.ts'
-  import {
-    chooseCardOrientation,
-    createDeckOrder,
-    type CardOrientation,
-  } from './lib/deckModes.ts'
+  import { chooseCardOrientation, createDeckOrder } from './lib/deckModes.ts'
   import { getNextIndex, getPreviousIndex } from './lib/deckNavigation.ts'
+  import {
+    applyStudyRating,
+    createEmptyStudyProgress,
+    createStudyOrder,
+    getStudyProgressSummary,
+    resetStudyProgress,
+  } from './lib/studyProgress.ts'
   import type { SwipeDirection } from './lib/swipeGesture.ts'
-  import type { TarotSuit } from './types/tarot.ts'
+  import {
+    TRAINER_STATE_KEY,
+    TRAINER_STATE_VERSION,
+    loadTrainerState,
+    saveTrainerState,
+  } from './lib/trainerState.ts'
+  import type { TarotCard as TarotCardData, TarotSuit } from './types/tarot.ts'
+  import type {
+    CardOrientation,
+    StudyProgress,
+    StudyRating,
+    TrainerMode,
+    TrainerState,
+  } from './types/trainer.ts'
 
-  const SETTINGS_KEY = 'tarot-trainer:settings'
+  const deckIds = tarotDeck.map((card) => card.id)
+  const cardsById = new Map(tarotDeck.map((card) => [card.id, card]))
   const suitLabels: Record<TarotSuit, string> = {
     wands: 'Hole',
     cups: 'Poháry',
@@ -21,63 +38,98 @@
     pentacles: 'Pentakly',
   }
 
+  let mode = $state<TrainerMode>('browse')
   let shuffleEnabled = $state(false)
   let reversedEnabled = $state(false)
-  let deckOrder = $state([...tarotDeck])
-  let orientations = $state<CardOrientation[]>(['upright'])
+  let deckOrder = $state<TarotCardData[]>([...tarotDeck])
+  let orientations = $state<Array<CardOrientation | null>>([
+    'upright',
+    ...Array<CardOrientation | null>(tarotDeck.length - 1).fill(null),
+  ])
+  let studyProgress = $state<StudyProgress>(createEmptyStudyProgress())
   let currentIndex = $state(0)
   let cardViewKey = $state(0)
+  let studyRevealed = $state(false)
+  let storageReady = false
+  let revealButton = $state<HTMLButtonElement>()
+  let practiceButton = $state<HTMLButtonElement>()
 
   const currentCard = $derived(deckOrder[currentIndex]!)
   const currentOrientation = $derived(orientations[currentIndex] ?? 'upright')
-  const progress = $derived(`${currentIndex + 1}/${deckOrder.length}`)
+  const traversalProgress = $derived(`${currentIndex + 1}/${deckOrder.length}`)
   const groupLabel = $derived(
     currentCard.arcana === 'major' ? 'Velká arkána' : suitLabels[currentCard.suit!],
   )
-  const shuffleComplete = $derived(shuffleEnabled && currentIndex === deckOrder.length - 1)
+  const isLastCard = $derived(currentIndex === deckOrder.length - 1)
+  const shuffleComplete = $derived(
+    mode === 'browse' && shuffleEnabled && isLastCard,
+  )
+  const studySummary = $derived(
+    getStudyProgressSummary(studyProgress, tarotDeck.length),
+  )
 
-  function readSettings(): { shuffle: boolean; reversed: boolean } {
-    try {
-      const stored = window.localStorage.getItem(SETTINGS_KEY)
-      if (!stored) return { shuffle: false, reversed: false }
-
-      const value = JSON.parse(stored) as Record<string, unknown>
-      return {
-        shuffle: value.shuffle === true,
-        reversed: value.reversed === true,
-      }
-    } catch {
-      return { shuffle: false, reversed: false }
+  function createSnapshot(): TrainerState {
+    return {
+      version: TRAINER_STATE_VERSION,
+      mode,
+      shuffleEnabled,
+      reversedEnabled,
+      deckOrderIds: deckOrder.map((card) => card.id),
+      currentIndex,
+      orientations: [...orientations],
+      studyRevealed,
+      studyProgress: {
+        knownCardIds: [...studyProgress.knownCardIds],
+        practiceCardIds: [...studyProgress.practiceCardIds],
+        orientationProgress: { ...studyProgress.orientationProgress },
+      },
     }
   }
 
-  function saveSettings(): void {
-    try {
-      window.localStorage.setItem(
-        SETTINGS_KEY,
-        JSON.stringify({ shuffle: shuffleEnabled, reversed: reversedEnabled }),
-      )
-    } catch {
-      // Aplikace zůstává funkční i při blokovaném localStorage.
-    }
+  function persistSession(): void {
+    if (!storageReady) return
+    saveTrainerState(window.localStorage, createSnapshot())
   }
 
-  function beginTraversal(): void {
-    deckOrder = createDeckOrder(tarotDeck, shuffleEnabled)
-    orientations = [chooseCardOrientation(reversedEnabled)]
-    currentIndex = 0
+  function resetCardView(): void {
+    studyRevealed = false
     cardViewKey += 1
+  }
+
+  function beginTraversal(lastCardId: string | null = null): void {
+    const orderedIds =
+      mode === 'study'
+        ? createStudyOrder(
+            deckIds,
+            studyProgress.practiceCardIds,
+            shuffleEnabled,
+            lastCardId,
+          )
+        : createDeckOrder(deckIds, shuffleEnabled)
+
+    deckOrder = orderedIds.map((id) => cardsById.get(id)!)
+    orientations = Array<CardOrientation | null>(orderedIds.length).fill(null)
+    orientations[0] = chooseCardOrientation(reversedEnabled)
+    currentIndex = 0
+    resetCardView()
+    persistSession()
+  }
+
+  function updateMode(nextMode: TrainerMode): void {
+    if (mode === nextMode) return
+
+    mode = nextMode
+    resetCardView()
+    persistSession()
   }
 
   function updateShuffle(enabled: boolean): void {
     shuffleEnabled = enabled
-    saveSettings()
     beginTraversal()
   }
 
   function updateReversed(enabled: boolean): void {
     reversedEnabled = enabled
-    saveSettings()
     beginTraversal()
   }
 
@@ -88,21 +140,50 @@
     if (previousIndex === currentIndex) return
 
     currentIndex = previousIndex
-    cardViewKey += 1
+    resetCardView()
+    persistSession()
   }
 
   function showNext(): void {
-    if (currentIndex === deckOrder.length - 1) {
-      if (shuffleEnabled) beginTraversal()
+    if (isLastCard) {
+      if (mode === 'study') beginTraversal(currentCard.id)
+      else if (shuffleEnabled) beginTraversal()
       return
     }
 
     const nextIndex = getNextIndex(currentIndex, deckOrder.length)
-    if (orientations[nextIndex] === undefined) {
-      orientations[nextIndex] = chooseCardOrientation(reversedEnabled)
+    if (orientations[nextIndex] === null) {
+      const updatedOrientations = [...orientations]
+      updatedOrientations[nextIndex] = chooseCardOrientation(reversedEnabled)
+      orientations = updatedOrientations
     }
     currentIndex = nextIndex
-    cardViewKey += 1
+    resetCardView()
+    persistSession()
+  }
+
+  function revealStudyMeaning(): void {
+    if (studyRevealed) return
+    studyRevealed = true
+    persistSession()
+    window.requestAnimationFrame(() => practiceButton?.focus())
+  }
+
+  function recordStudyResult(rating: StudyRating): void {
+    studyProgress = applyStudyRating(studyProgress, currentCard.id, rating)
+    persistSession()
+    showNext()
+    window.requestAnimationFrame(() => revealButton?.focus())
+  }
+
+  function confirmProgressReset(): void {
+    const confirmed = window.confirm(
+      'Opravdu chcete vymazat naučené karty a seznam k procvičení? Nastavení a aktuální karta zůstanou zachované.',
+    )
+    if (!confirmed) return
+
+    studyProgress = resetStudyProgress()
+    persistSession()
   }
 
   function navigateBySwipe(direction: SwipeDirection): void {
@@ -121,20 +202,33 @@
       showPrevious()
     }
 
-    if (
-      event.key === 'ArrowRight' &&
-      (shuffleEnabled || currentIndex < deckOrder.length - 1)
-    ) {
+    if (event.key === 'ArrowRight' && (mode === 'study' || shuffleEnabled || !isLastCard)) {
       event.preventDefault()
       showNext()
     }
   }
 
   onMount(() => {
-    const settings = readSettings()
-    shuffleEnabled = settings.shuffle
-    reversedEnabled = settings.reversed
-    beginTraversal()
+    const hadStoredState = window.localStorage.getItem(TRAINER_STATE_KEY) !== null
+    const restored = loadTrainerState(window.localStorage, deckIds)
+    mode = restored.mode
+    shuffleEnabled = restored.shuffleEnabled
+    reversedEnabled = restored.reversedEnabled
+    deckOrder = restored.deckOrderIds.map((id) => cardsById.get(id)!)
+    orientations = [...restored.orientations]
+    currentIndex = restored.currentIndex
+    studyRevealed = restored.studyRevealed
+    studyProgress = restored.studyProgress
+    storageReady = true
+
+    if (!hadStoredState) {
+      beginTraversal()
+      return
+    }
+
+    cardViewKey += 1
+
+    if (!window.localStorage.getItem(TRAINER_STATE_KEY)) persistSession()
   })
 </script>
 
@@ -148,11 +242,57 @@
 <svelte:window onkeydown={handleKeyboardNavigation} />
 
 <div class="app-shell">
-  <AppHeader {progress} />
+  <AppHeader progress={traversalProgress} />
 
   <main class="trainer">
+    <div class="trainer-mode-switch" role="group" aria-label="Režim aplikace">
+      <button
+        type="button"
+        class:active={mode === 'browse'}
+        aria-pressed={mode === 'browse'}
+        onclick={() => updateMode('browse')}
+      >
+        Prohlížení
+      </button>
+      <button
+        type="button"
+        class:active={mode === 'study'}
+        aria-pressed={mode === 'study'}
+        onclick={() => updateMode('study')}
+      >
+        Učení
+      </button>
+    </div>
+
+    <section class="study-progress" aria-labelledby="study-progress-title">
+      <header>
+        <h2 id="study-progress-title">Studijní pokrok</h2>
+        <button type="button" class="reset-progress" onclick={confirmProgressReset}>
+          Resetovat
+        </button>
+      </header>
+      <dl>
+        <div>
+          <dt>Celkem</dt>
+          <dd>{studySummary.total}</dd>
+        </div>
+        <div>
+          <dt>Naučené</dt>
+          <dd>{studySummary.known}</dd>
+        </div>
+        <div>
+          <dt>Procvičit</dt>
+          <dd>{studySummary.practice}</dd>
+        </div>
+        <div>
+          <dt>Zbývá</dt>
+          <dd>{studySummary.remaining}</dd>
+        </div>
+      </dl>
+    </section>
+
     <fieldset class="mode-controls">
-      <legend class="visually-hidden">Režimy procházení balíčku</legend>
+      <legend class="visually-hidden">Nastavení pořadí a orientace karet</legend>
 
       <label class:active={shuffleEnabled} class="mode-toggle">
         <span class="mode-copy">
@@ -191,8 +331,45 @@
         card={currentCard}
         orientation={currentOrientation}
         onNavigate={navigateBySwipe}
+        studyMode={mode === 'study'}
+        revealed={studyRevealed}
       />
     {/key}
+
+    {#if mode === 'study'}
+      <section class="study-actions" aria-label="Vyhodnocení karty">
+        {#if !studyRevealed}
+          <p>Nejdřív si zkuste vybavit význam karty.</p>
+          <button
+            bind:this={revealButton}
+            type="button"
+            class="reveal-button"
+            onclick={revealStudyMeaning}
+          >
+            Odhalit význam
+          </button>
+        {:else}
+          <p>Jak dobře jste si význam vybavili?</p>
+          <div>
+            <button
+              bind:this={practiceButton}
+              type="button"
+              class="practice-button"
+              onclick={() => recordStudyResult('practice')}
+            >
+              Procvičit
+            </button>
+            <button
+              type="button"
+              class="known-button"
+              onclick={() => recordStudyResult('known')}
+            >
+              Umím
+            </button>
+          </div>
+        {/if}
+      </section>
+    {/if}
 
     <nav class="deck-navigation" aria-label="Procházení tarotového balíčku">
       <button
@@ -206,21 +383,31 @@
       <button
         type="button"
         class="next-button"
-        disabled={!shuffleEnabled && currentIndex === deckOrder.length - 1}
+        disabled={mode === 'browse' && !shuffleEnabled && isLastCard}
         onclick={showNext}
       >
-        {shuffleComplete ? 'Zamíchat znovu' : 'Další'}
-        <span aria-hidden="true">{shuffleComplete ? '↻' : '→'}</span>
+        {mode === 'study' && isLastCard
+          ? 'Další kolo'
+          : shuffleComplete
+            ? 'Zamíchat znovu'
+            : 'Další'}
+        <span aria-hidden="true">{isLastCard ? '↻' : '→'}</span>
       </button>
     </nav>
 
-    {#if shuffleComplete}
+    {#if mode === 'study' && isLastCard}
+      <p class="completion-message" role="status">
+        Další kolo začne kartami označenými k procvičení.
+      </p>
+    {:else if shuffleComplete}
       <p class="completion-message" role="status">
         Prošli jste všech 78 karet. Dalším klepnutím vytvoříte nové pořadí.
       </p>
     {:else}
       <p class="keyboard-hint">
-        Klepnutím otočíte · přejetím nebo šipkami listujete
+        {mode === 'browse'
+          ? 'Klepnutím otočíte · přejetím nebo šipkami listujete'
+          : 'Význam odhalíte tlačítkem · přejetím nebo šipkami listujete'}
       </p>
     {/if}
   </main>

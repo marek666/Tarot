@@ -2,9 +2,17 @@
 
 Minimalistická mobile-first PWA pro postupné učení kompletního balíčku Rider–Waite–Smith. Projekt používá Svelte 5, TypeScript a Vite a funguje bez backendu, routeru i uživatelských účtů.
 
-Karty lze procházet v tradičním pořadí nebo po zamíchání algoritmem Fisher–Yates. Volitelný režim Reversed losuje orientaci každé nové karty a zobrazí její odpovídající význam. Obě nastavení se ukládají lokálně v prohlížeči.
+Karty lze procházet v tradičním pořadí nebo po zamíchání algoritmem Fisher–Yates. Volitelný režim Reversed losuje orientaci každé nové karty a zobrazí její odpovídající význam.
 
 Klepnutím se karta otočí na český výklad. Mezi kartami lze přecházet tlačítky, vodorovným swipem nebo šipkami na klávesnici.
+
+Aplikace nabízí také režim Učení. Význam se v něm odhalí až samostatným tlačítkem a kartu lze označit jako „Umím“ nebo „Procvičit“. Procvičované karty mají prioritu na začátku dalšího studijního kola, aniž by se právě dokončená karta bezdůvodně ihned zopakovala.
+
+## Lokální pokrok
+
+Aktuální karta, režim, pořadí balíčku, již vylosované orientace a studijní pokrok se průběžně ukládají do `localStorage`. Po opětovném otevření aplikace pokračuje relace na stejném místě. Data používají verzované schéma; neplatný nebo poškozený záznam se bezpečně zahodí a aplikace vytvoří nový výchozí stav.
+
+Pokrok je veden primárně pro kartu jako celek. Datový model současně obsahuje připravené rozlišení přímého a obráceného významu pro případné budoucí rozšíření. Reset studijního pokroku vyžaduje potvrzení a nemaže aktuální kartu ani nastavení Shuffle a Reversed.
 
 ## Požadavky
 
@@ -63,7 +71,7 @@ Všechny kroky lze spustit najednou:
 npm run verify
 ```
 
-`npm test` spustí jednotkové testy míchání a orientace. `npm run check` ověřuje tarotová data a TypeScript/Svelte komponenty. `npm run validate:pwa` kontroluje manifest, rozměry ikon, aplikační bundle a všech 78 obrázků v precache. Produkční soubory vzniknou v adresáři `dist/`.
+`npm test` spustí jednotkové testy míchání, orientace, studijní logiky a obnovy verzovaného lokálního stavu. `npm run check` ověřuje tarotová data a TypeScript/Svelte komponenty. `npm run validate:pwa` kontroluje manifest, rozměry ikon, aplikační bundle a všech 78 obrázků v precache. Produkční soubory vzniknou v adresáři `dist/`.
 
 ## Nasazení
 
