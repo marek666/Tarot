@@ -2,6 +2,13 @@
 
 Všechny podstatné změny projektu jsou evidovány v tomto souboru.
 
+## 0.2.1 — 2026-11-01
+
+### Opraveno
+
+- Mobilní plocha karty zachytí pointer až při swipu, takže první obyčejné tapnutí v Safari nezůstane bez odezvy.
+- Browser regrese pro obrácený význam nyní používá skutečné dotykové události včetně iPhone profilu.
+
 ## 0.2.0 — 2026-11-01
 
 ### Přidáno

@@ -22,3 +22,19 @@ test('iPhone instalační nápověda je relevantní, zavíratelná a jednorázov
   await page.reload()
   await expect(hint).toBeHidden()
 })
+
+test('první tapnutí v iPhone prostředí odhalí obrácený význam', async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0
+  })
+  await page.goto('/')
+  await page.evaluate(() => localStorage.clear())
+  await page.reload()
+
+  await page.getByLabel('Reversed').tap()
+  const card = page.locator('.tarot-card')
+  await expect(card).toHaveAttribute('data-orientation', 'reversed')
+  await card.locator('.card-front').tap()
+  await expect(card.locator('.card-inner')).toHaveClass(/flipped/)
+  await expect(card.locator('.meaning-label')).toHaveText('Obrácená poloha')
+})

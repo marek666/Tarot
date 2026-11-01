@@ -54,7 +54,7 @@ test('obrácená ilustrace po klepnutí vždy ukáže obrácený význam', async
   await expect(card).toHaveAttribute('data-orientation', 'reversed')
   await expect(card.locator('img.reversed')).toBeVisible()
 
-  await card.locator('.card-front').click()
+  await card.locator('.card-front').tap()
   await expect(card.locator('.card-inner')).toHaveClass(/flipped/)
   await expect(card.locator('.meaning-label')).toHaveText('Obrácená poloha')
   await expect(card.locator('.meaning-summary')).toContainText('Svoboda se mění')

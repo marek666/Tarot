@@ -99,9 +99,6 @@
   function handlePointerDown(event: PointerEvent): void {
     if (!event.isPrimary || event.pointerType === 'mouse') return
 
-    const stage = event.currentTarget as HTMLElement
-    stage.setPointerCapture(event.pointerId)
-
     gestureStart = {
       pointerId: event.pointerId,
       x: event.clientX,
@@ -119,6 +116,13 @@
     gestureStart.currentX = event.clientX
     gestureStart.currentY = event.clientY
     gestureStart.currentTime = event.timeStamp
+
+    const movedX = event.clientX - gestureStart.x
+    const movedY = event.clientY - gestureStart.y
+    if (Math.hypot(movedX, movedY) >= 8) {
+      const stage = event.currentTarget as HTMLElement
+      if (!stage.hasPointerCapture(event.pointerId)) stage.setPointerCapture(event.pointerId)
+    }
   }
 
   function finishGesture(stage: HTMLElement, x: number, y: number, time: number): boolean {
