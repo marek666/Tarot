@@ -1,0 +1,39 @@
+export type CardOrientation = 'upright' | 'reversed'
+export type RandomSource = () => number
+
+function sampleRandom(random: RandomSource): number {
+  const value = random()
+  if (!Number.isFinite(value) || value < 0 || value >= 1) {
+    throw new RangeError('Generátor náhody musí vracet číslo v rozsahu 0 včetně až 1 vyjma.')
+  }
+  return value
+}
+
+export function shuffleDeck<T>(cards: readonly T[], random: RandomSource = Math.random): T[] {
+  const shuffled = [...cards]
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(sampleRandom(random) * (index + 1))
+    const swappedCard = shuffled[index]!
+    shuffled[index] = shuffled[swapIndex]!
+    shuffled[swapIndex] = swappedCard
+  }
+
+  return shuffled
+}
+
+export function createDeckOrder<T>(
+  cards: readonly T[],
+  shuffleEnabled: boolean,
+  random: RandomSource = Math.random,
+): T[] {
+  return shuffleEnabled ? shuffleDeck(cards, random) : [...cards]
+}
+
+export function chooseCardOrientation(
+  reversedEnabled: boolean,
+  random: RandomSource = Math.random,
+): CardOrientation {
+  if (!reversedEnabled) return 'upright'
+  return sampleRandom(random) < 0.5 ? 'reversed' : 'upright'
+}
