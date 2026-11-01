@@ -51,6 +51,7 @@
   let currentIndex = $state(0)
   let cardViewKey = $state(0)
   let studyRevealed = $state(false)
+  let sessionReady = $state(false)
   let storageReady = false
   let revealButton = $state<HTMLButtonElement>()
   let practiceButton = $state<HTMLButtonElement>()
@@ -193,7 +194,7 @@
   }
 
   function handleKeyboardNavigation(event: KeyboardEvent): void {
-    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
+    if (!sessionReady || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
 
     const target = event.target as HTMLElement | null
     if (target?.closest('details, input, textarea, select')) return
@@ -210,7 +211,13 @@
   }
 
   onMount(() => {
-    const hadStoredState = window.localStorage.getItem(TRAINER_STATE_KEY) !== null
+    let hadStoredState = false
+    try {
+      hadStoredState = window.localStorage.getItem(TRAINER_STATE_KEY) !== null
+    } catch {
+      // Nedostupné úložiště nesmí zabránit spuštění aplikace.
+    }
+
     const restored = loadTrainerState(window.localStorage, deckIds)
     mode = restored.mode
     shuffleEnabled = restored.shuffleEnabled
@@ -224,12 +231,17 @@
 
     if (!hadStoredState) {
       beginTraversal()
-      return
+    } else {
+      cardViewKey += 1
+
+      try {
+        if (!window.localStorage.getItem(TRAINER_STATE_KEY)) persistSession()
+      } catch {
+        // Stav zůstane funkční pouze v paměti.
+      }
     }
 
-    cardViewKey += 1
-
-    if (!window.localStorage.getItem(TRAINER_STATE_KEY)) persistSession()
+    sessionReady = true
   })
 </script>
 
@@ -242,6 +254,7 @@
 
 <svelte:window onkeydown={handleKeyboardNavigation} />
 
+{#if sessionReady}
 <div class="app-shell">
   <AppHeader progress={traversalProgress} />
 
@@ -415,5 +428,6 @@
     {/if}
   </main>
 </div>
+{/if}
 
 <PwaUpdatePrompt />

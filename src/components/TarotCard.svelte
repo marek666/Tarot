@@ -27,6 +27,7 @@
   let frontButton: HTMLButtonElement | undefined
   let backButton: HTMLButtonElement | undefined
   let unlockTimer: number | undefined
+  let focusFrame: number | undefined
   let suppressClickTimer: number | undefined
   let suppressNextClick = false
   let gestureStart:
@@ -35,9 +36,6 @@
         x: number
         y: number
         time: number
-        currentX: number
-        currentY: number
-        currentTime: number
       }
     | undefined
 
@@ -50,15 +48,22 @@
   }
 
   function setFlipped(nextFlipped: boolean): void {
-    if (isAnimating || isFlipped === nextFlipped) return
+    if (isFlipped === nextFlipped) return
+
+    if (unlockTimer !== undefined) {
+      window.clearTimeout(unlockTimer)
+      unlockTimer = undefined
+    }
+    if (focusFrame !== undefined) window.cancelAnimationFrame(focusFrame)
 
     isAnimating = true
     isFlipped = nextFlipped
 
     if (!studyMode) {
-      window.requestAnimationFrame(() => {
+      focusFrame = window.requestAnimationFrame(() => {
         const visibleButton = isFlipped ? backButton : frontButton
         visibleButton?.focus({ preventScroll: true })
+        focusFrame = undefined
       })
     }
 
@@ -80,14 +85,20 @@
     return false
   }
 
-  function showMeaning(event: MouseEvent): void {
+  function toggleCard(event: MouseEvent): void {
     if (handleSuppressedClick(event) || studyMode) return
-    setFlipped(true)
+
+    const target = event.target as Element | null
+    if (target?.closest('details')) return
+
+    setFlipped(!isFlipped)
   }
 
-  function showIllustration(event: MouseEvent): void {
-    if (handleSuppressedClick(event) || studyMode) return
-    setFlipped(false)
+  function delegateCardClicks(node: HTMLElement): { destroy: () => void } {
+    node.addEventListener('click', toggleCard)
+    return {
+      destroy: () => node.removeEventListener('click', toggleCard),
+    }
   }
 
   function finishAnimation(event: TransitionEvent): void {
@@ -104,18 +115,11 @@
       x: event.clientX,
       y: event.clientY,
       time: event.timeStamp,
-      currentX: event.clientX,
-      currentY: event.clientY,
-      currentTime: event.timeStamp,
     }
   }
 
   function handlePointerMove(event: PointerEvent): void {
     if (!gestureStart || gestureStart.pointerId !== event.pointerId) return
-
-    gestureStart.currentX = event.clientX
-    gestureStart.currentY = event.clientY
-    gestureStart.currentTime = event.timeStamp
 
     const movedX = event.clientX - gestureStart.x
     const movedY = event.clientY - gestureStart.y
@@ -161,12 +165,7 @@
 
     const stage = event.currentTarget as HTMLElement
     if (stage.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId)
-    finishGesture(
-      stage,
-      gestureStart.currentX,
-      gestureStart.currentY,
-      gestureStart.currentTime,
-    )
+    gestureStart = undefined
   }
 
   $effect(() => {
@@ -175,6 +174,7 @@
 
   onDestroy(() => {
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
+    if (focusFrame !== undefined) window.cancelAnimationFrame(focusFrame)
     if (suppressClickTimer !== undefined) window.clearTimeout(suppressClickTimer)
   })
 </script>
@@ -198,6 +198,7 @@
     onpointermove={handlePointerMove}
     onpointerup={handlePointerUp}
     onpointercancel={cancelGesture}
+    use:delegateCardClicks
   >
     <div
       class:flipped={isFlipped}
@@ -205,7 +206,6 @@
       class="card-inner"
       aria-busy={isAnimating}
       ontransitionend={finishAnimation}
-      ontransitioncancel={unlockFlip}
     >
       <button
         bind:this={frontButton}
@@ -217,8 +217,8 @@
           : `Otočit kartu ${card.nameCs}, ${orientationLabel.toLocaleLowerCase('cs')}, a zobrazit význam`}
         aria-hidden={isFlipped}
         aria-disabled={studyMode}
-        disabled={isFlipped}
-        onclick={showMeaning}
+        inert={isFlipped}
+        disabled={studyMode}
       >
         <img
           class:reversed={orientation === 'reversed'}
@@ -236,8 +236,7 @@
           type="button"
           class="back-flip-target"
           aria-label={`Otočit kartu ${card.nameCs} zpět na ilustraci`}
-          disabled={!isFlipped || studyMode}
-          onclick={showIllustration}
+          disabled={studyMode}
         ></button>
 
         <div class="meaning-content" aria-live="polite">
@@ -509,10 +508,6 @@
   .back-flip-target:focus-visible {
     outline: 3px solid var(--gold);
     outline-offset: 4px;
-  }
-
-  .card-inner.animating .card-face {
-    pointer-events: none;
   }
 
   @media (max-width: 359px) {

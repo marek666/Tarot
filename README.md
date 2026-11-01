@@ -1,4 +1,4 @@
-# Tarot Trainer 0.2.1
+# Tarot Trainer 0.2.2
 
 Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smith. Funguje bez backendu, účtu a připojení po prvním úspěšném načtení. Používá Svelte 5, TypeScript, Vite, čisté CSS, `vite-plugin-pwa` a malé testy nad vestavěným Node test runnerem a Playwrightem.
 
@@ -62,10 +62,15 @@ npm run build        # produkční bundle a service worker
 npm run validate:pwa # manifest, ikony, česká data a precache
 npm run test:e2e     # build + Chromium smoke testy
 npm run verify       # všechny výše uvedené kontroly v jednom běhu
+npm run verify:production # veřejná produkce a všech 78 ilustrací
 npm audit --omit=dev
 ```
 
 Playwright na Fedoře standardně používá `/usr/bin/chromium-browser`. Jinou instalaci lze vybrat proměnnou `PLAYWRIGHT_CHROMIUM_PATH=/cesta/ke/chromiu`.
+
+### Bezpečnost závislostí
+
+Aplikace nemá žádné produkční npm závislosti; výsledkem buildu jsou pouze statické soubory. `npm audit --omit=dev` proto musí vrátit 0 nálezů. Úplný `npm audit` může hlásit vývojové tranzitivní balíčky nástrojů Svelte/Workbox. Dokud jejich správci nevydají kompatibilní opravu, nepoužívejte `npm audit fix --force`: navrhovaný downgrade PWA pluginu je breaking změna a runtime bezpečnost statické aplikace nezlepší.
 
 ## Offline režim a aktualizace
 

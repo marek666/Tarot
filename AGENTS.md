@@ -46,3 +46,5 @@ npm audit --omit=dev
 ```
 
 `verify` zahrnuje unit testy, validaci všech 78 karet, Svelte/TypeScript kontrolu, produkční build, PWA validaci a Playwright smoke testy. Vše musí projít bez chyb. Pokud prostředí neobsahuje Chromium v `/usr/bin/chromium-browser`, nastav `PLAYWRIGHT_CHROMIUM_PATH`.
+
+Po produkčním deploymentu spusť také `npm run verify:production`; kontroluje veřejný přístup bez přihlášení, manifest, service worker a dostupnost všech 78 ilustrací.

@@ -2,6 +2,20 @@
 
 Všechny podstatné změny projektu jsou evidovány v tomto souboru.
 
+## 0.2.2 — 2026-11-01
+
+### Opraveno
+
+- Rychlé tapy během 3D animace se již nezahazují; výsledná strana odpovídá počtu přepnutí.
+- Navigace, změna režimu nebo nové nastavení během animace vždy připojí novou kartu přední stranou.
+- Zrušené pointer gesto již nemůže omylem vyvolat navigaci.
+- Obnovená relace se načte před prvním vykreslením balíčku, takže aktualizace PWA neblikne první kartou.
+
+### Přidáno
+
+- Regresní scénáře pro opakované a rychlé flipy na kartách 25 a 37, navigaci 50→51, úplný Shuffle průchod, reload karty 40 a zachování pokroku po kontrole service workeru.
+- Nezávislá produkční kontrola veřejného HTML, manifestu, service workeru a všech 78 ilustrací.
+
 ## 0.2.1 — 2026-11-01
 
 ### Opraveno
