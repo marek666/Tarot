@@ -5,7 +5,11 @@
   import PwaUpdatePrompt from './components/PwaUpdatePrompt.svelte'
   import TarotCard from './components/TarotCard.svelte'
   import { tarotDeck } from './data/tarotDeck.ts'
-  import { chooseCardOrientation, createDeckOrder } from './lib/deckModes.ts'
+  import {
+    applyReversedSetting,
+    chooseCardOrientation,
+    createDeckOrder,
+  } from './lib/deckModes.ts'
   import { getNextIndex, getPreviousIndex } from './lib/deckNavigation.ts'
   import {
     applyStudyRating,
@@ -132,7 +136,8 @@
 
   function updateReversed(enabled: boolean): void {
     reversedEnabled = enabled
-    beginTraversal()
+    orientations = applyReversedSetting(orientations, currentIndex, enabled)
+    persistSession()
   }
 
   function showPrevious(): void {

@@ -2,6 +2,13 @@
 
 Všechny podstatné změny projektu jsou evidovány v tomto souboru.
 
+## 0.2.3 — 2026-11-01
+
+### Opraveno
+
+- Přepínač Reversed již nezahajuje nové procházení od první karty. Změní orientaci právě zobrazené karty a zachová její index, pořadí balíčku, odhalenou stranu i studijní pokrok.
+- Vypnutí Reversed vrátí již rozdané karty do přímé polohy; nové karty při zapnutém režimu nadále používají 50% pravděpodobnost.
+
 ## 0.2.2 — 2026-11-01
 
 ### Opraveno

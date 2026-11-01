@@ -9,7 +9,7 @@ async function fetchPublic(pathname: string, method: 'GET' | 'HEAD' = 'GET'): Pr
   const response = await fetch(new URL(pathname, productionOrigin), {
     method,
     redirect: 'follow',
-    headers: { 'user-agent': 'TarotTrainerProductionVerifier/0.2.2' },
+    headers: { 'user-agent': 'TarotTrainerProductionVerifier/0.2.3' },
   })
   equal(response.status, 200, `${pathname} není veřejně dostupné (HTTP ${response.status}).`)
   ok(!/vercel\.com\/(?:login|sso)/.test(response.url), `${pathname} přesměrovalo na přihlášení.`)

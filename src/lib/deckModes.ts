@@ -39,3 +39,22 @@ export function chooseCardOrientation(
   if (!reversedEnabled) return 'upright'
   return sampleRandom(random) < 0.5 ? 'reversed' : 'upright'
 }
+
+export function applyReversedSetting(
+  orientations: readonly (CardOrientation | null)[],
+  currentIndex: number,
+  enabled: boolean,
+): Array<CardOrientation | null> {
+  if (currentIndex < 0 || currentIndex >= orientations.length) {
+    throw new RangeError('Index aktuální karty je mimo rozsah orientací.')
+  }
+
+  const updated = enabled
+    ? [...orientations]
+    : orientations.map(
+        (orientation): CardOrientation | null => orientation === null ? null : 'upright',
+      )
+
+  updated[currentIndex] = enabled ? 'reversed' : 'upright'
+  return updated
+}

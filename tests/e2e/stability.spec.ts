@@ -88,18 +88,29 @@ test('klávesová navigace během flipu mění jen kartu a novou ukáže zepřed
   await expect(page.locator('.card-inner')).not.toHaveClass(/flipped/)
 })
 
-test('změna Reversed během animace zahájí čistou relaci bez zamčeného flipu', async ({ page }) => {
+test('změna Reversed během animace upraví aktuální kartu bez resetu relace', async ({ page }) => {
   await openFreshApp(page)
   await goToPosition(page, 6)
+  const cardId = await page.locator('.tarot-card').getAttribute('data-card-id')
 
   await page.locator('.card-stage').tap()
   await page.getByLabel('Reversed').check()
 
-  await expect(page.locator('.progress')).toHaveText('1/78')
+  await expect(page.locator('.progress')).toHaveText('6/78')
   await expect(page.getByLabel('Reversed')).toBeChecked()
-  await expect(page.locator('.card-inner')).not.toHaveClass(/flipped/)
-  await page.locator('.card-stage').tap()
+  await expect(page.locator('.tarot-card')).toHaveAttribute('data-card-id', cardId!)
+  await expect(page.locator('.tarot-card')).toHaveAttribute('data-orientation', 'reversed')
   await expect(page.locator('.card-inner')).toHaveClass(/flipped/)
+  await expect(page.locator('.meaning-label')).toHaveText('Obrácená poloha')
+  expect(await storedIndex(page)).toBe(5)
+
+  await page.getByLabel('Reversed').uncheck()
+
+  await expect(page.locator('.progress')).toHaveText('6/78')
+  await expect(page.locator('.tarot-card')).toHaveAttribute('data-card-id', cardId!)
+  await expect(page.locator('.tarot-card')).toHaveAttribute('data-orientation', 'upright')
+  await expect(page.locator('.card-inner')).toHaveClass(/flipped/)
+  await expect(page.locator('.meaning-label')).toHaveText('Přímá poloha')
 })
 
 test('Shuffle rozdá všech 78 unikátních karet před novým kolem', async ({ page }) => {

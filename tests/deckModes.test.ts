@@ -1,6 +1,7 @@
 import { deepEqual, equal, notDeepEqual, throws } from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  applyReversedSetting,
   chooseCardOrientation,
   createDeckOrder,
   shuffleDeck,
@@ -62,4 +63,22 @@ test('Reversed používá přesnou hranici 50 %', () => {
 test('neplatný výstup generátoru je odmítnut', () => {
   throws(() => shuffleDeck([1, 2], () => 1), RangeError)
   throws(() => chooseCardOrientation(true, () => -0.1), RangeError)
+})
+
+test('zapnutí Reversed obrátí aktuální kartu bez změny ostatních orientací', () => {
+  const source = ['upright', 'upright', null] as const
+
+  deepEqual(applyReversedSetting(source, 1, true), ['upright', 'reversed', null])
+  deepEqual(source, ['upright', 'upright', null])
+})
+
+test('vypnutí Reversed narovná již rozdané karty a zachová nerozdané', () => {
+  deepEqual(
+    applyReversedSetting(['reversed', 'upright', 'reversed', null], 2, false),
+    ['upright', 'upright', 'upright', null],
+  )
+})
+
+test('změna Reversed odmítne neplatný index', () => {
+  throws(() => applyReversedSetting(['upright'], 1, true), RangeError)
 })
