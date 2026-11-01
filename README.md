@@ -1,99 +1,113 @@
-# Tarot Trainer
+# Tarot Trainer 0.2.0
 
-Minimalistická mobile-first PWA pro postupné učení kompletního balíčku Rider–Waite–Smith. Projekt používá Svelte 5, TypeScript a Vite a funguje bez backendu, routeru i uživatelských účtů.
+Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smith. Funguje bez backendu, účtu a připojení po prvním úspěšném načtení. Používá Svelte 5, TypeScript, Vite, čisté CSS, `vite-plugin-pwa` a malé testy nad vestavěným Node test runnerem a Playwrightem.
 
-Karty lze procházet v tradičním pořadí nebo po zamíchání algoritmem Fisher–Yates. Volitelný režim Reversed losuje orientaci každé nové karty a zobrazí její odpovídající význam.
+## Co aplikace umí
 
-Klepnutím se karta otočí na český výklad. Mezi kartami lze přecházet tlačítky, vodorovným swipem nebo šipkami na klávesnici.
+- Prohlížení karet v tradičním pořadí nebo bez opakování po Fisher–Yates zamíchání.
+- Volitelný Reversed režim: každá nově rozdaná karta má nezávisle 50% šanci na obrácenou polohu; obrázek se otočí a výklad zůstane čitelný.
+- Plynulé 3D otočení, navigaci tlačítky, vodorovným swipem a klávesami se zohledněním `prefers-reduced-motion`.
+- Režim Učení s odhalením významu a volbou „Umím“ nebo „Procvičit“.
+- Trvalé verzované uložení režimu, aktuální karty, zamíchaného pořadí, rozdaných orientací a pokroku v `localStorage`.
+- Offline provoz, instalovatelný manifest, lokální public-domain ilustrace a potvrzenou aktualizaci service workeru.
 
-Aplikace nabízí také režim Učení. Význam se v něm odhalí až samostatným tlačítkem a kartu lze označit jako „Umím“ nebo „Procvičit“. Procvičované karty mají prioritu na začátku dalšího studijního kola, aniž by se právě dokončená karta bezdůvodně ihned zopakovala.
+## Struktura projektu
 
-## Lokální pokrok
+```text
+src/
+├── components/   malé Svelte komponenty UI a PWA oznámení
+├── data/         všech 78 karet a jejich české výklady
+├── lib/          čistá logika balíčku, studia, persistence a validace
+├── styles/       globální CSS a designové proměnné
+└── types/        sdílené TypeScript typy
+public/
+├── cards/        78 lokálních Rider–Waite–Smith ilustrací
+└── *.png         PWA ikony 192, 512 a Apple touch icon 180 px
+scripts/          validace dat, PWA a obnova obrázků
+tests/
+├── e2e/          mobilní, dotykové, stavové a offline Playwright smoke testy
+└── *.test.ts     jednotkové testy čisté logiky
+```
 
-Aktuální karta, režim, pořadí balíčku, již vylosované orientace a studijní pokrok se průběžně ukládají do `localStorage`. Po opětovném otevření aplikace pokračuje relace na stejném místě. Data používají verzované schéma; neplatný nebo poškozený záznam se bezpečně zahodí a aplikace vytvoří nový výchozí stav.
+`src/App.svelte` skládá obrazovku a drží lokální stav. `src/components/TarotCard.svelte` pouze vykresluje kartu a její interakce. Pořadí, orientace, studijní priorita a persistence jsou oddělené v `src/lib/`.
 
-Pokrok je veden primárně pro kartu jako celek. Datový model současně obsahuje připravené rozlišení přímého a obráceného významu pro případné budoucí rozšíření. Reset studijního pokroku vyžaduje potvrzení a nemaže aktuální kartu ani nastavení Shuffle a Reversed.
+## Spuštění na Fedoře
 
-## Požadavky
-
-- Node.js 22.18 nebo novější (kontrolní skript využívá vestavěnou podporu TypeScriptu)
-- npm
-
-## Spuštění
+Projekt vyžaduje Node.js 22.18 nebo novější a npm. Pro browser testy je na Fedoře potřeba Chromium.
 
 ```bash
-npm install
+sudo dnf install nodejs npm chromium
+node --version
+npm ci
 npm run dev
 ```
 
-Vite po spuštění vypíše lokální adresu vývojového serveru. Service worker se vytváří až při produkčním buildu, aby během vývoje nedržel zastaralé soubory.
+Vite vypíše lokální adresu. Vývojový server záměrně negeneruje aktivní produkční service worker.
 
-Produkční náhled včetně PWA vrstvy:
+Produkční build a jeho lokální náhled:
 
 ```bash
 npm run build
 npm run preview
 ```
 
-Pro instalaci a service worker musí být aplikace otevřená přes HTTPS; výjimkou je lokální `localhost`.
+Výsledek je v `dist/`. Instalace PWA a service worker vyžadují HTTPS; `localhost` je pro vývoj bezpečná výjimka.
 
-## Tarotová data
-
-Kompletní balíček je exportovaný z `src/data/tarotDeck.ts`. Typy jsou v `src/types/tarot.ts` a hloubková validace v `src/lib/validateTarotDeck.ts`. Původ lokálních public-domain ilustrací popisuje `ATTRIBUTION.md`.
-
-Obnovení lokálních obrázků s ověřením původních souborů vůči Wikimedia Commons a stažením jejich mobilních kopií z veřejného zrcadla:
+## Kontroly a testy
 
 ```bash
-npm run download:cards
+npm test             # unit testy
+npm run check        # data + Svelte + TypeScript
+npm run build        # produkční bundle a service worker
+npm run validate:pwa # manifest, ikony, česká data a precache
+npm run test:e2e     # build + Chromium smoke testy
+npm run verify       # všechny výše uvedené kontroly v jednom běhu
+npm audit --omit=dev
 ```
 
-## Offline PWA
+Playwright na Fedoře standardně používá `/usr/bin/chromium-browser`. Jinou instalaci lze vybrat proměnnou `PLAYWRIGHT_CHROMIUM_PATH=/cesta/ke/chromiu`.
 
-Produkční service worker předem ukládá aplikační soubory, kompletní česká data a všech 78 lokálních ilustrací. Po zobrazení oznámení „Aplikace je připravená offline“ lze aplikaci znovu otevřít bez připojení. Při vydání nové verze se zobrazí nabídka k bezpečnému načtení aktualizace.
+## Offline režim a aktualizace
+
+Produkční service worker předem uloží HTML, JavaScript, CSS, manifest, ikony a všech 78 ilustrací. České názvy a významy jsou součástí aplikačního JavaScriptu, takže nevyžadují API ani síť. Aplikace je plně offline po prvním úspěšném načtení a dokončení precache, které oznámí zprávou „Aplikace je připravená offline“.
+
+Nový service worker čeká na souhlas uživatele. Po potvrzení aktualizace převezme novou verzi a stránka se načte znovu. Studijní stav je samostatně v `localStorage`, takže výměna cache jej nemaže. Poškozená nebo neznámá verze lokálních dat se bezpečně nahradí výchozím stavem.
 
 - Android/Chrome: použijte nabídku **Instalovat aplikaci** nebo **Přidat na plochu**.
-- iPhone/iPad/Safari: použijte **Sdílet → Přidat na plochu**. iOS nezobrazuje vlastní programové instalační tlačítko.
+- iPhone/Safari: použijte **Sdílet → Přidat na plochu**. Krátká nápověda se zobrazí pouze v relevantním Safari, lze ji zavřít a po prvním zobrazení se neopakuje.
 
-Manifest a offline cache se automaticky ověří příkazem `npm run validate:pwa` po vytvoření `dist/`.
+## Úprava karet a překladů
 
-## Kontrola a build
+Datový model je v `src/types/tarot.ts` a obsah v `src/data/tarotDeck.ts`. Každá karta musí mít unikátní `id`, tradiční číslo a pořadí, český a anglický název, arkánu/barvu, cestu k lokálnímu obrázku a přímý i obrácený význam. Každý význam vyžaduje 3–5 klíčových slov, stručné shrnutí a podrobnější vysvětlení.
+
+Po každé obsahové změně spusťte:
 
 ```bash
+npm run validate:data
 npm test
-npm run check
-npm run build
-npm run validate:pwa
 ```
 
-Všechny kroky lze spustit najednou:
+Validátor kontroluje přesně 78 karet, kanonické pořadí a názvy, členění arkán, unikátní ID a obrázky, neprázdné významy i JPEG rozměry. Původ a právní stav ilustrací popisuje [ATTRIBUTION.md](./ATTRIBUTION.md). Obrázky lze znovu stáhnout a ověřit příkazem `npm run download:cards`.
 
-```bash
-npm run verify
-```
-
-`npm test` spustí jednotkové testy míchání, orientace, studijní logiky a obnovy verzovaného lokálního stavu. `npm run check` ověřuje tarotová data a TypeScript/Svelte komponenty. `npm run validate:pwa` kontroluje manifest, rozměry ikon, aplikační bundle a všech 78 obrázků v precache. Produkční soubory vzniknou v adresáři `dist/`.
+Pro budoucí jazyk je vhodné zachovat stabilní ID karet a přidat typovanou překladovou vrstvu oddělenou od ilustrací a logiky. Přidání jiného balíčku vyžaduje vlastní dataset, assety a odpovídající validační profil; nemá se obcházet současná RWS validace.
 
 ## Nasazení
 
-1. Na čistém prostředí spusťte `npm ci` a `npm run verify`.
-2. Nahrajte celý obsah adresáře `dist/` do kořene statického HTTPS hostingu.
-3. Soubor `sw.js` servírujte bez dlouhodobé cache, například s `Cache-Control: no-cache`. Soubory v `assets/` mají hash v názvu a mohou mít dlouhou immutable cache.
-4. Po nasazení otevřete aplikaci online, vyčkejte na potvrzení offline připravenosti a teprve potom ověřte režim bez připojení.
+### Vercel
 
-Manifest používá `start_url` a `scope` nastavené na `/`; nasazení se proto očekává v kořeni domény.
+Repozitář je připraven jako Vite projekt:
 
-## Struktura
+- Build command: `npm run build`
+- Output directory: `dist`
+- Production branch: `main`
 
-```text
-src/
-├── components/   Svelte komponenty uživatelského rozhraní
-├── data/         Statická data aplikace
-├── lib/          Pomocná logika bez vazby na UI
-├── styles/       Globální styly a designové proměnné
-└── types/        Sdílené TypeScript typy
-public/
-├── cards/        Lokální public-domain obrázky karet
-└── *.png         PWA a Apple ikony
-scripts/          Validace dat a produkční PWA
-tests/            Jednotkové testy aplikační logiky
-```
+Po propojení Git repozitáře Vercel automaticky vytvoří produkční deployment z větve `main`. Projekt nepotřebuje proměnné prostředí ani tajné údaje.
+
+### Jiný statický hosting
+
+1. Spusťte `npm ci && npm run verify`.
+2. Publikujte obsah `dist/` do kořene HTTPS domény.
+3. Přesměrujte navigační požadavky na `index.html`.
+4. `sw.js` a `manifest.webmanifest` servírujte bez dlouhé cache; hashované soubory v `assets/` mohou mít immutable cache.
+
+Manifest používá `start_url`, `scope` a `id` `/`, proto tato konfigurace očekává nasazení v kořeni domény.

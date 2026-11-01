@@ -13,9 +13,13 @@ const manifest = JSON.parse(
 equal(manifest.name, 'Tarot Trainer')
 equal(manifest.short_name, 'Tarot')
 equal(manifest.display, 'standalone')
+equal(manifest.id, '/')
 equal(manifest.start_url, '/')
+equal(manifest.scope, '/')
+equal(manifest.lang, 'cs')
 equal(manifest.theme_color, '#07111f')
 equal(manifest.background_color, '#07111f')
+ok((manifest.categories as unknown[]).includes('education'), 'Manifest musí uvádět kategorii education.')
 
 const icons = manifest.icons as Array<Record<string, unknown>>
 ok(Array.isArray(icons), 'Manifest musí obsahovat pole ikon.')
@@ -44,6 +48,8 @@ const cardFiles = (await readdir(join(publicDirectory, 'cards')))
 equal(cardFiles.length, 78, 'Offline cache musí obsahovat přesně 78 obrázků karet.')
 
 const serviceWorker = await readFile(join(distDirectory, 'sw.js'), 'utf8')
+match(serviceWorker, /SKIP_WAITING/, 'Service worker musí podporovat potvrzenou aktualizaci.')
+match(serviceWorker, /cleanupOutdatedCaches/, 'Service worker musí odstraňovat zastaralé cache.')
 for (const filename of cardFiles) {
   const assetPath = `cards/${filename}`
   const occurrenceCount = serviceWorker.split(assetPath).length - 1
@@ -55,6 +61,17 @@ for (const filename of builtAssets.filter((asset) => /\.(?:js|css)$/.test(asset)
   ok(serviceWorker.includes(`assets/${filename}`), `${filename} chybí v offline precache.`)
 }
 
+const applicationJavaScript = (
+  await Promise.all(
+    builtAssets
+      .filter((asset) => asset.startsWith('index-') && asset.endsWith('.js'))
+      .map((asset) => readFile(join(distDirectory, 'assets', asset), 'utf8')),
+  )
+).join('\n')
+match(applicationJavaScript, /Velekněžka/, 'Produkční bundle neobsahuje česká data karet.')
+match(applicationJavaScript, /Obrácený Ďábel/, 'Produkční bundle neobsahuje obrácené české významy.')
+match(applicationJavaScript, /tarot-trainer:state/, 'Produkční bundle neobsahuje trvalé uložení pokroku.')
+
 console.log(
-  'PWA: manifest, ikony, aplikační soubory a všech 78 obrázků jsou zahrnuté v offline precache.',
+  'PWA: manifest, ikony, aktualizace, česká data, pokrok a všech 78 obrázků jsou ověřené pro offline provoz.',
 )

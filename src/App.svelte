@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import AppHeader from './components/AppHeader.svelte'
+  import IosInstallHint from './components/IosInstallHint.svelte'
   import PwaUpdatePrompt from './components/PwaUpdatePrompt.svelte'
   import TarotCard from './components/TarotCard.svelte'
   import { tarotDeck } from './data/tarotDeck.ts'
@@ -263,6 +264,8 @@
         Učení
       </button>
     </div>
+
+    <IosInstallHint />
 
     <section class="study-progress" aria-labelledby="study-progress-title">
       <header>

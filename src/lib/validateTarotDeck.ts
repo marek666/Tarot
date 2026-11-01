@@ -6,6 +6,55 @@ const EXPECTED_GROUPS: ReadonlyArray<readonly [Arcana, TarotSuit | null, number]
   ...SUITS.map((suit) => ['minor', suit, 14] as const),
 ]
 
+const MAJOR_ARCANA = [
+  ['major-00-fool', 'Blázen', 'The Fool'],
+  ['major-01-magician', 'Mág', 'The Magician'],
+  ['major-02-high-priestess', 'Velekněžka', 'The High Priestess'],
+  ['major-03-empress', 'Císařovna', 'The Empress'],
+  ['major-04-emperor', 'Císař', 'The Emperor'],
+  ['major-05-hierophant', 'Velekněz', 'The Hierophant'],
+  ['major-06-lovers', 'Milenci', 'The Lovers'],
+  ['major-07-chariot', 'Vůz', 'The Chariot'],
+  ['major-08-strength', 'Síla', 'Strength'],
+  ['major-09-hermit', 'Poustevník', 'The Hermit'],
+  ['major-10-wheel-of-fortune', 'Kolo štěstí', 'Wheel of Fortune'],
+  ['major-11-justice', 'Spravedlnost', 'Justice'],
+  ['major-12-hanged-man', 'Viselec', 'The Hanged Man'],
+  ['major-13-death', 'Smrt', 'Death'],
+  ['major-14-temperance', 'Umírněnost', 'Temperance'],
+  ['major-15-devil', 'Ďábel', 'The Devil'],
+  ['major-16-tower', 'Věž', 'The Tower'],
+  ['major-17-star', 'Hvězda', 'The Star'],
+  ['major-18-moon', 'Měsíc', 'The Moon'],
+  ['major-19-sun', 'Slunce', 'The Sun'],
+  ['major-20-judgement', 'Soud', 'Judgement'],
+  ['major-21-world', 'Svět', 'The World'],
+] as const
+
+const MINOR_RANKS = [
+  ['Eso', 'Ace'],
+  ['Dvojka', 'Two'],
+  ['Trojka', 'Three'],
+  ['Čtyřka', 'Four'],
+  ['Pětka', 'Five'],
+  ['Šestka', 'Six'],
+  ['Sedmička', 'Seven'],
+  ['Osmička', 'Eight'],
+  ['Devítka', 'Nine'],
+  ['Desítka', 'Ten'],
+  ['Páže', 'Page'],
+  ['Rytíř', 'Knight'],
+  ['Královna', 'Queen'],
+  ['Král', 'King'],
+] as const
+
+const SUIT_NAMES: Record<TarotSuit, readonly [string, string]> = {
+  wands: ['holí', 'Wands'],
+  cups: ['pohárů', 'Cups'],
+  swords: ['mečů', 'Swords'],
+  pentacles: ['pentaklů', 'Pentacles'],
+}
+
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
     throw new Error(`Neplatný tarotový balíček: ${message}`)
@@ -64,6 +113,29 @@ export function validateTarotDeck(value: unknown): readonly TarotCard[] {
       assert(card.number === firstNumber + index, `${card.id} má číslo ${card.number}, očekáváno ${firstNumber + index}`)
     })
     offset += count
+  }
+
+  MAJOR_ARCANA.forEach(([id, nameCs, nameEn], index) => {
+    const card = cards[index]!
+    assert(card.id === id, `Velká arkána ${index} má ID ${card.id}, očekáváno ${id}`)
+    assert(card.nameCs === nameCs, `${id}.nameCs má být „${nameCs}“`)
+    assert(card.nameEn === nameEn, `${id}.nameEn má být „${nameEn}“`)
+    assert(card.image === `/cards/${id}.jpg`, `${id}.image neodpovídá kartě`)
+  })
+
+  let minorOffset = MAJOR_ARCANA.length
+  for (const suit of SUITS) {
+    const [suitCs, suitEn] = SUIT_NAMES[suit]
+    MINOR_RANKS.forEach(([rankCs, rankEn], rankIndex) => {
+      const card = cards[minorOffset + rankIndex]!
+      const number = rankIndex + 1
+      const id = `${suit}-${String(number).padStart(2, '0')}`
+      assert(card.id === id, `${suit} ${number} má ID ${card.id}, očekáváno ${id}`)
+      assert(card.nameCs === `${rankCs} ${suitCs}`, `${id}.nameCs neodpovídá tradičnímu názvu`)
+      assert(card.nameEn === `${rankEn} of ${suitEn}`, `${id}.nameEn neodpovídá tradičnímu názvu`)
+      assert(card.image === `/cards/${id}.jpg`, `${id}.image neodpovídá kartě`)
+    })
+    minorOffset += MINOR_RANKS.length
   }
 
   return Object.freeze(cards)

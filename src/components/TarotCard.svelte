@@ -70,15 +70,24 @@
     unlockTimer = window.setTimeout(unlockFlip, 750)
   }
 
-  function flipCard(event: MouseEvent): void {
+  function handleSuppressedClick(event: MouseEvent): boolean {
     if (suppressNextClick) {
       event.preventDefault()
       suppressNextClick = false
-      return
+      return true
     }
 
-    if (studyMode) return
-    setFlipped(!isFlipped)
+    return false
+  }
+
+  function showMeaning(event: MouseEvent): void {
+    if (handleSuppressedClick(event) || studyMode) return
+    setFlipped(true)
+  }
+
+  function showIllustration(event: MouseEvent): void {
+    if (handleSuppressedClick(event) || studyMode) return
+    setFlipped(false)
   }
 
   function finishAnimation(event: TransitionEvent): void {
@@ -166,7 +175,12 @@
   })
 </script>
 
-<article class="tarot-card" aria-label={`${card.nameCs}, ${card.nameEn}, ${orientationLabel}`}>
+<article
+  class="tarot-card"
+  data-card-id={card.id}
+  data-orientation={orientation}
+  aria-label={`${card.nameCs}, ${card.nameEn}, ${orientationLabel}`}
+>
   <header class="card-title" aria-live="polite">
     <h2>{card.nameCs}</h2>
     <p>{card.nameEn}</p>
@@ -200,7 +214,7 @@
         aria-hidden={isFlipped}
         aria-disabled={studyMode}
         disabled={isFlipped}
-        onclick={flipCard}
+        onclick={showMeaning}
       >
         <img
           class:reversed={orientation === 'reversed'}
@@ -219,10 +233,10 @@
           class="back-flip-target"
           aria-label={`Otočit kartu ${card.nameCs} zpět na ilustraci`}
           disabled={!isFlipped || studyMode}
-          onclick={flipCard}
+          onclick={showIllustration}
         ></button>
 
-        <div class="meaning-content">
+        <div class="meaning-content" aria-live="polite">
           <p class="meaning-label">{orientationLabel}</p>
           <h3>{card.nameCs}</h3>
 

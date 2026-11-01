@@ -2,36 +2,47 @@
 
 ## Cíl projektu
 
-Tarot Trainer je minimalistická mobilní aplikace pro učení tarotových karet. Zachovávej ji rychlou, přehlednou a snadno udržovatelnou. Nové vrstvy a abstrakce přidávej jen tehdy, když řeší konkrétní současný požadavek.
+Tarot Trainer je minimalistická mobilní PWA pro učení tarotových karet. Zachovávej ji rychlou, přehlednou, offline použitelnou a snadno udržovatelnou. Novou vrstvu, abstrakci nebo závislost přidávej jen tehdy, když řeší konkrétní současný požadavek.
 
 ## Architektura
 
-- `src/components/` obsahuje malé, znovupoužitelné Svelte komponenty.
-- `src/data/` obsahuje statická data; komponenty nemají obsahový dataset definovat přímo.
-- `src/lib/` obsahuje čisté pomocné funkce a aplikační logiku bez vazby na vykreslování.
-- `src/styles/` obsahuje globální CSS, designové proměnné a případné sdílené styly.
+- `src/components/` obsahuje malé Svelte komponenty bez vloženého datového balíčku.
+- `src/data/tarotDeck.ts` je jediný zdroj obsahu 78 Rider–Waite–Smith karet.
+- `src/lib/` obsahuje čistou logiku pořadí, orientace, studia, persistence a validace bez vazby na vykreslování.
+- `src/lib/trainerState.ts` vlastní verzované schéma `localStorage`; migrace nesmí potichu ztratit platný pokrok.
+- `src/styles/` obsahuje globální CSS a designové proměnné.
 - `src/types/` obsahuje sdílené TypeScript typy.
-- `public/cards/` je vyhrazený pro statické obrázky tarotových karet.
+- `public/cards/` obsahuje 78 lokálních public-domain ilustrací; původ dokumentuje `ATTRIBUTION.md`.
+- `tests/*.test.ts` testují čistou logiku a `tests/e2e/` hlavní mobilní a offline scénáře.
 
 ## Konvence
 
-- Používej Svelte 5 a TypeScript; každý blok `<script>` v komponentě musí mít `lang="ts"`.
-- Preferuj lokální stav Svelte. Nepřidávej globální state management, dokud pro něj nevznikne jasná potřeba.
+- Používej Svelte 5 a TypeScript; každý `<script>` v komponentě musí mít `lang="ts"`.
+- Preferuj lokální stav Svelte. Nepřidávej globální state management, router, backend, API, databázi ani autentizaci.
 - Komponenty pojmenovávej v `PascalCase`, proměnné a funkce v `camelCase`.
-- Sdílené typy pojmenovávej popisně a nepoužívej `any` bez zdůvodnění.
-- Styluj mobile-first a ověřuj použitelnost od šířky 320 px.
-- Používej sémantické HTML, čitelné kontrasty a viditelné focus stavy pro interaktivní prvky.
-- Zachovej tmavě modrou paletu a střídmé zlaté akcenty.
-- Nepřidávej router, backend, API, databázi, autentizaci, PWA vrstvu ani velký UI framework bez výslovného požadavku.
-- Nepřidávej balíček jen kvůli drobné funkci, kterou lze jasně napsat několika řádky.
+- Nepoužívej `any` bez zdůvodnění a drž aplikační logiku testovatelnou mimo komponenty.
+- Styluj mobile-first od 320 px, bez pevných výšek stránky. Respektuj safe-area insets, 44×44 px dotykové cíle a viditelné focus stavy.
+- Zachovej tmavě modrou paletu, střídmé zlaté akcenty, plné ilustrace bez ořezu a `prefers-reduced-motion`.
+- Obrácená poloha otáčí pouze ilustraci. Název a výklad musí zůstat normálně čitelné a musí používat `reversed` data stejné karty.
+- Shuffle používá Fisher–Yates bez opakování do konce průchodu. Reversed losuje orientaci pouze pro nově rozdanou kartu.
+- Neměň stabilní ID karet ani klíč `tarot-trainer:state` bez verzované migrace a testu obnovy.
+- Nepřidávej balíček kvůli drobné funkci, kterou lze jasně napsat několika řádky. Výjimkou jsou cílené vývojové nástroje, například Playwright pro E2E ověření.
+
+## Tarotová data a PWA
+
+- Pořadí je: 22 Velkých arkán 0–21, poté 14 holí, pohárů, mečů a pentaklů 1–14.
+- Každý význam má 3–5 konkrétních klíčových slov, stručný český význam a věcný delší výklad. Obrácený význam není automaticky negativní.
+- Při úpravě karet aktualizuj validaci pouze tehdy, pokud se záměrně mění podporovaný datový model.
+- Všechny runtime prostředky musí zůstat lokální a zahrnuté v precache. Nepřidávej externí fonty, obrázky ani API.
+- Aktualizace service workeru musí zůstat potvrzovaná uživatelem a nesmí mazat `localStorage`.
 
 ## Kontrola změn
 
-Před dokončením změny spusť:
+Před dokončením vždy spusť:
 
 ```bash
-npm run check
-npm run build
+npm run verify
+npm audit --omit=dev
 ```
 
-Oba příkazy musí projít bez chyb.
+`verify` zahrnuje unit testy, validaci všech 78 karet, Svelte/TypeScript kontrolu, produkční build, PWA validaci a Playwright smoke testy. Vše musí projít bez chyb. Pokud prostředí neobsahuje Chromium v `/usr/bin/chromium-browser`, nastav `PLAYWRIGHT_CHROMIUM_PATH`.
