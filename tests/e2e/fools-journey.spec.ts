@@ -67,7 +67,7 @@ test('Cesta Blázna umožní navigaci, výběr kapitoly, význam a návrat', asy
   await expect(page.locator('.progress')).toHaveText('10/22')
 
   await page.getByRole('button', { name: '← Zpět' }).click()
-  await expect(page.getByRole('button', { name: 'Učení', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.desktop-nav button').filter({ hasText: 'Učení' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.locator('.progress')).toHaveText('1/78')
 })
 
@@ -103,7 +103,7 @@ test('přímé přepnutí z rozečteného studia přes příběh zachová platno
   await navigateMode(page, 'Prohlížení')
   await page.reload()
 
-  await expect(page.getByRole('button', { name: 'Prohlížení' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.desktop-nav button').filter({ hasText: 'Prohlížení' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.locator('.progress')).toHaveText('1/78')
   const state = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot-trainer:state')!))
   expect(state.version).toBe(3)
