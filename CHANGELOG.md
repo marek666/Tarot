@@ -2,6 +2,14 @@
 
 Všechny podstatné změny projektu jsou evidovány v tomto souboru.
 
+## 0.4.1 — připravuje se
+
+- Hlavní navigace přesunutá do hlavičky; na mobilu přístupný hamburger dialog.
+- Nastavení Shuffle/Reversed ve sbalitelném panelu.
+- Pod sekcí Výklady nová záložka Deník, lokální ukládání Karty dne i dokončených tříkaretních výkladů.
+- Poznámky, odstranění a bezpečný JSON export/import deníku; samostatný localStorage klíč tarot-trainer:journal.
+- Jednotkové a browserové testy deníku a navigace.
+
 ## 0.4.0 — 2026-11-02
 
 ### Přidáno
