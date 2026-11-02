@@ -14,6 +14,7 @@
     onNext,
     onStartOver,
     onExit,
+    favoriteCardIds,
     favorite,
     onToggleFavorite,
   }: {
@@ -27,6 +28,7 @@
     onNext: () => void
     onStartOver: () => void
     onExit: () => void
+    favoriteCardIds: readonly string[]
     favorite: boolean
     onToggleFavorite: () => void
   } = $props()
@@ -86,6 +88,7 @@
     onSelect={selectJourneyCard}
     triggerLabel={`Vybrat kapitolu · ${index + 1}/22`}
     dialogTitle="Vybrat kapitolu Cesty Blázna"
+    favoriteCardIds={favoriteCardIds}
     wide
   />
 
