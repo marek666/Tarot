@@ -1,4 +1,4 @@
-# Tarot Trainer 0.3.3
+# Tarot Trainer 0.4.0
 
 Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smith. Funguje bez backendu, účtu a připojení po prvním úspěšném načtení. Používá Svelte 5, TypeScript, Vite, čisté CSS, `vite-plugin-pwa` a malé testy nad vestavěným Node test runnerem a Playwrightem.
 
@@ -10,6 +10,8 @@ Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smi
 - Režim Učení s odhalením významu a volbou „Umím“ nebo „Procvičit“.
 - Režim Cesta Blázna: souvislý výukový příběh všech 22 Velkých arkán se symbolikou, lekcemi a klasickým významem karty.
 - Karta dne: jeden bezpečně vylosovaný lokální podnět pro každý kalendářní den s uloženou orientací a oblastmi Obecně, Vztahy, Práce a Osobní rozvoj.
+- Tříkaretní výklady v části Karta dne: tři šablony, unikátní bezpečně vylosované karty, volitelný Reversed a výukové odhalování vlastního výkladu před vzorem.
+- Společné čtení tří pozic pomocí transparentních pravidel pro Velká arkána, opakované barvy a obrácené karty, vždy jako podnět k reflexi, ne jistá předpověď.
 - Adaptivní čtecí rozhraní Cesty Blázna: jednosloupcový mobil a portrait tablet, vyvážené dva sloupce v landscape a na desktopu a výškově podmíněná sticky ilustrace.
 - Jednotný výběr libovolné karty nebo kapitoly s náhledy, vyhledáváním bez diakritiky a filtry arkán, barev, studijního stavu i oblíbených.
 - Oblíbené karty v Prohlížení, Učení, Cestě Blázna i Kartě dne se ukládají společně a neovlivňují studijní hodnocení.
@@ -35,7 +37,7 @@ tests/
 └── *.test.ts     jednotkové testy čisté logiky
 ```
 
-`src/App.svelte` skládá obrazovku a drží lokální stav. `src/components/TarotCard.svelte` vykresluje klasickou kartu, `src/components/DailyCard.svelte` denní výklad, `src/components/CardPicker.svelte` společný přístupný výběr karet, `src/components/FoolsJourney.svelte` příběhovou kapitolu a `src/components/StudyProgressPanel.svelte` kompaktní pokrok. Pořadí, denní los, tematické interpretace, filtrování pickeru, studijní priorita, validace příběhu a persistence jsou oddělené v `src/lib/`.
+`src/App.svelte` skládá obrazovku a drží lokální stav. `src/components/TarotCard.svelte` vykresluje klasickou kartu, `src/components/DailyCard.svelte` denní výklad, `src/components/ThreeCardSpread.svelte` tříkaretní výklad, `src/components/CardPicker.svelte` společný přístupný výběr karet, `src/components/FoolsJourney.svelte` příběhovou kapitolu a `src/components/StudyProgressPanel.svelte` kompaktní pokrok. Pořadí, denní i tříkaretní los, interpretace pozic, filtrování pickeru, studijní priorita, validace příběhu a persistence jsou oddělené v `src/lib/`.
 
 ## Spuštění na Fedoře
 
@@ -80,11 +82,11 @@ Aplikace nemá žádné produkční npm závislosti; výsledkem buildu jsou pouz
 
 ## Offline režim a aktualizace
 
-Produkční service worker předem uloží HTML, JavaScript, CSS, manifest, ikony a všech 78 ilustrací. České názvy, klasické významy, 624 kombinací denních tematických výkladů i celý text Cesty Blázna jsou součástí aplikačního JavaScriptu, takže nevyžadují API ani síť. Aplikace je plně offline po prvním úspěšném načtení a dokončení precache, které oznámí zprávou „Aplikace je připravená offline“.
+Produkční service worker předem uloží HTML, JavaScript, CSS, manifest, ikony a všech 78 ilustrací. České názvy, klasické významy, 624 kombinací denních tematických výkladů, 5 616 kombinací tříkaretních pozic a celý text Cesty Blázna jsou součástí aplikačního JavaScriptu, takže nevyžadují API ani síť. Aplikace je plně offline po prvním úspěšném načtení a dokončení precache, které oznámí zprávou „Aplikace je připravená offline“.
 
 Nový service worker čeká na souhlas uživatele. Po potvrzení aktualizace převezme novou verzi a stránka se načte znovu. Studijní stav je samostatně v `localStorage`, takže výměna cache jej nemaže. Poškozená nebo neznámá verze lokálních dat se bezpečně nahradí výchozím stavem.
 
-Hlavní relace a oblíbené používají verzovaný klíč `tarot-trainer:state`. Denní los má oddělený verzovaný klíč `tarot-trainer:daily-card`, aby nikdy neměnil pořadí balíčku, orientace rozdaných karet ani studijní pokrok. Datum se zapisuje podle místního kalendáře ve formátu `YYYY-MM-DD`; po změně místního dne se při otevření nebo návratu do aplikace vytvoří nový los.
+Hlavní relace a oblíbené používají verzovaný klíč `tarot-trainer:state`. Denní los má oddělený verzovaný klíč `tarot-trainer:daily-card`, aby nikdy neměnil pořadí balíčku, orientace rozdaných karet ani studijní pokrok. Datum se zapisuje podle místního kalendáře ve formátu `YYYY-MM-DD`; po změně místního dne se při otevření nebo návratu do aplikace vytvoří nový los. Jeden rozpracovaný tříkaretní výklad je samostatně ve verzovaném klíči `tarot-trainer:spread`; uchovává šablonu, oblast, otázku, tři ID a orientace i stav odhalení a nijak nemění hlavní ani denní relaci.
 
 - Android/Chrome: použijte nabídku **Instalovat aplikaci** nebo **Přidat na plochu**.
 - iPhone/Safari: použijte **Sdílet → Přidat na plochu**. Krátká nápověda se zobrazí pouze v relevantním Safari, lze ji zavřít a po prvním zobrazení se neopakuje.
@@ -105,6 +107,8 @@ Validátor kontroluje přesně 78 karet, kanonické pořadí a názvy, členěn�
 Příběhový obsah je samostatně v `src/data/foolsJourney.ts` a jeho typ v `src/types/foolsJourney.ts`. Kapitola odkazuje stabilním `cardId` na existující Velkou arkánu a neduplikuje ilustraci ani klasický výklad. Validace vyžaduje přesně 22 kapitol ve správném pořadí, 100–180 slov příběhu, 2–4 skutečné symboly a 3–5 klíčových slov. Přidání dalšího jazyka má zachovat stejná ID a přesunout texty do samostatné typované překladové vrstvy.
 
 Tematická vrstva Karty dne je v `src/data/dailyInterpretations.ts`; skládá kartě specifický tradiční význam s ručně připraveným profilem Velké arkány nebo s konkrétní kombinací barvy a hodnoty Malé arkány. `npm run validate:data` kontroluje všech 624 kombinací karty, oblasti a orientace. Texty zůstávají symbolickými podněty, nikoli jistou předpovědí budoucnosti.
+
+Tříkaretní šablony jsou v `src/data/spreadLayouts.ts`, verzovaný stav v `src/lib/spreadState.ts` a čistá interpretace pozic i celku v `src/lib/spreadInterpretation.ts`. Šablony odkazují na existující karty stabilními ID a obrázky neduplikují. Validátor prochází všech 5 616 kombinací karty, orientace, oblasti, šablony a pozice; při úpravě textů zachovejte odlišení role pozice od klasického významu a nepoužívejte formulace jisté předpovědi.
 
 Pro budoucí jazyk je vhodné zachovat stabilní ID karet a přidat typovanou překladovou vrstvu oddělenou od ilustrací a logiky. Přidání jiného balíčku vyžaduje vlastní dataset, assety a odpovídající validační profil; nemá se obcházet současná RWS validace.
 

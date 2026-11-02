@@ -1,9 +1,12 @@
 import { access, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { foolsJourney } from '../src/data/foolsJourney.ts'
+import { SPREAD_LAYOUTS } from '../src/data/spreadLayouts.ts'
 import { tarotDeck } from '../src/data/tarotDeck.ts'
 import { getDailyInterpretation } from '../src/lib/dailyInterpretation.ts'
+import { getSpreadCardInterpretation } from '../src/lib/spreadInterpretation.ts'
 import { DAILY_AREAS } from '../src/types/dailyCard.ts'
+import { SPREAD_LAYOUT_IDS } from '../src/types/spread.ts'
 
 function readJpegDimensions(file: Buffer): readonly [number, number] | null {
   if (file.length < 4 || file[0] !== 0xff || file[1] !== 0xd8) return null
@@ -55,6 +58,7 @@ await Promise.all(
 )
 
 let dailyInterpretationCount = 0
+let spreadInterpretationCount = 0
 for (const card of tarotDeck) {
   for (const orientation of ['upright', 'reversed'] as const) {
     for (const area of DAILY_AREAS) {
@@ -69,8 +73,34 @@ for (const card of tarotDeck) {
         throw new Error(`${card.id}/${orientation}/${area}: denní výklad není kompletní.`)
       }
       dailyInterpretationCount += 1
+
+      for (const layoutId of SPREAD_LAYOUT_IDS) {
+        const layout = SPREAD_LAYOUTS[layoutId]
+        if (layout.positions.length !== 3 || new Set(layout.positions.map(({ id }) => id)).size !== 3) {
+          throw new Error(`${layoutId}: rozložení musí obsahovat tři unikátní pozice.`)
+        }
+
+        for (const [positionIndex, position] of layout.positions.entries()) {
+          const interpretation = getSpreadCardInterpretation(card, orientation, layoutId, positionIndex, area)
+          if (
+            interpretation.position.id !== position.id ||
+            interpretation.keywords.length < 3 ||
+            interpretation.keywords.length > 5 ||
+            !interpretation.classicSummary.trim() ||
+            !interpretation.classicDescription.trim() ||
+            !interpretation.positionMeaning.trim() ||
+            !interpretation.areaConnection.trim() ||
+            !interpretation.reflectionQuestion.trim().endsWith('?') ||
+            /pro dnešek/i.test(interpretation.positionMeaning) ||
+            /pro dnešek/i.test(interpretation.areaConnection)
+          ) {
+            throw new Error(`${card.id}/${orientation}/${area}/${layoutId}/${position.id}: výklad pozice není kompletní.`)
+          }
+          spreadInterpretationCount += 1
+        }
+      }
     }
   }
 }
 
-console.log(`Tarotová data: 78 karet, ${foolsJourney.length} kapitol Cesty Blázna, ${dailyInterpretationCount} tematických kombinací, významy a lokální ilustrace ověřeny.`)
+console.log(`Tarotová data: 78 karet, ${foolsJourney.length} kapitol Cesty Blázna, ${dailyInterpretationCount} denních a ${spreadInterpretationCount} tříkaretních tematických kombinací, významy a lokální ilustrace ověřeny.`)

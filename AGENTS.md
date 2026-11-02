@@ -11,6 +11,7 @@ Tarot Trainer je minimalistická mobilní PWA pro učení tarotových karet. Zac
 - `src/lib/` obsahuje čistou logiku pořadí, orientace, studia, persistence a validace bez vazby na vykreslování.
 - `src/lib/trainerState.ts` vlastní verzované schéma `localStorage`; migrace nesmí potichu ztratit platný pokrok.
 - `src/lib/dailyCard.ts` vlastní oddělený verzovaný denní los; nesmí měnit hlavní balíček, studijní data ani Cestu Blázna.
+- `src/lib/spreadState.ts` vlastní samostatný verzovaný tříkaretní výklad; interpretace pozic a celku patří do `src/lib/spreadInterpretation.ts`.
 - `src/components/CardPicker.svelte` je společný modalní výběr karet a kapitol; čisté vyhledávání a filtrování patří do `src/lib/cardPicker.ts`.
 - `src/styles/` obsahuje globální CSS a designové proměnné.
 - `src/types/` obsahuje sdílené TypeScript typy.
@@ -31,6 +32,7 @@ Tarot Trainer je minimalistická mobilní PWA pro učení tarotových karet. Zac
 - Neměň stabilní ID karet ani klíč `tarot-trainer:state` bez verzované migrace a testu obnovy.
 - Cesta Blázna používá pouze 22 Velkých arkán v pevném pořadí, nereaguje na Shuffle ani Reversed a nesmí duplikovat obrázky nebo klasická kartová data.
 - Karta dne odkazuje na stabilní ID, drží kartu i orientaci po celý místní kalendářní den a tematická oblast nikdy nespouští nový los.
+- Tříkaretní výklad používá tři unikátní stabilní ID, samostatně uložené orientace a stav odhalení. Nesmí čerpat z pořadí hlavního balíčku ani měnit `tarot-trainer:state` či `tarot-trainer:daily-card`.
 - Nepřidávej balíček kvůli drobné funkci, kterou lze jasně napsat několika řádky. Výjimkou jsou cílené vývojové nástroje, například Playwright pro E2E ověření.
 
 ## Tarotová data a PWA
@@ -40,6 +42,7 @@ Tarot Trainer je minimalistická mobilní PWA pro učení tarotových karet. Zac
 - Při úpravě karet aktualizuj validaci pouze tehdy, pokud se záměrně mění podporovaný datový model.
 - Všechny runtime prostředky musí zůstat lokální a zahrnuté v precache. Nepřidávej externí fonty, obrázky ani API.
 - Denní tematické interpretace musí zůstat statické, konkrétní pro kartu a formulované jako symbolický podnět, nikoli jistá předpověď.
+- Interpretace tří karet musí odlišit klasický význam, roli pozice a tematickou oblast. Společný výklad používá transparentní deterministická pravidla a nikdy netvrdí jistý budoucí výsledek.
 - Aktualizace service workeru musí zůstat potvrzovaná uživatelem a nesmí mazat `localStorage`.
 
 ## Kontrola změn

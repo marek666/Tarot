@@ -8,6 +8,7 @@
   import PwaUpdatePrompt from './components/PwaUpdatePrompt.svelte'
   import StudyProgressPanel from './components/StudyProgressPanel.svelte'
   import TarotCard from './components/TarotCard.svelte'
+  import ThreeCardSpread from './components/ThreeCardSpread.svelte'
   import { foolsJourney } from './data/foolsJourney.ts'
   import { tarotDeck } from './data/tarotDeck.ts'
   import {
@@ -25,6 +26,22 @@
   import { getDailyInterpretation } from './lib/dailyInterpretation.ts'
   import { toggleFavoriteCard } from './lib/favorites.ts'
   import {
+    clearSpreadCards,
+    createDefaultSpreadState,
+    dealThreeCardSpread,
+    isSpreadUnfinished,
+    loadSpreadState,
+    revealAllSpreadCards,
+    revealSpreadCard,
+    revealSpreadInterpretation,
+    saveSpreadState,
+    updateSpreadSettings,
+  } from './lib/spreadState.ts'
+  import {
+    getCombinedSpreadInterpretation,
+    getSpreadCardInterpretation,
+  } from './lib/spreadInterpretation.ts'
+  import {
     applyStudyRating,
     createEmptyStudyProgress,
     createStudyOrder,
@@ -41,6 +58,7 @@
   } from './lib/trainerState.ts'
   import type { DailyArea, DailyCardState } from './types/dailyCard.ts'
   import type { TarotCard as TarotCardData, TarotSuit } from './types/tarot.ts'
+  import type { ThreeCardSpreadState } from './types/spread.ts'
   import type {
     CardOrientation,
     ClassicTrainerMode,
@@ -78,6 +96,8 @@
   let journeyChapterIndex = $state(0)
   let journeyHighestChapterIndex = $state(0)
   let dailyCardState = $state<DailyCardState | null>(null)
+  let dailyView = $state<'daily' | 'spread'>('daily')
+  let spreadState = $state<ThreeCardSpreadState>(createDefaultSpreadState())
   let sessionReady = $state(false)
   let storageReady = false
   let browserStorage: StorageLike | null = null
@@ -90,7 +110,7 @@
   const headerProgress = $derived(
     mode === 'journey'
       ? `${journeyChapterIndex + 1}/${foolsJourney.length}`
-      : mode === 'daily' ? 'Dnes' : traversalProgress,
+      : mode === 'daily' ? dailyView === 'daily' ? 'Dnes' : '3 karty' : traversalProgress,
   )
   const currentJourneyChapter = $derived(foolsJourney[journeyChapterIndex]!)
   const currentJourneyCard = $derived(journeyCards[journeyChapterIndex]!)
@@ -116,6 +136,28 @@
   )
   const dailyDateLabel = $derived(
     formatLocalDateLabel(dailyCardState?.localDate ?? getLocalDateKey()),
+  )
+  const resolvedSpreadCards = $derived(
+    spreadState.cards.map((state) => ({ state, card: cardsById.get(state.cardId)! })),
+  )
+  const spreadCards = $derived(resolvedSpreadCards.map(({ card }) => card))
+  const spreadInterpretations = $derived(
+    resolvedSpreadCards.map(({ card, state }, index) => getSpreadCardInterpretation(
+      card,
+      state.orientation,
+      spreadState.layoutId,
+      index,
+      spreadState.area,
+    )),
+  )
+  const combinedSpreadInterpretation = $derived(
+    resolvedSpreadCards.length === 3
+      ? getCombinedSpreadInterpretation(
+          resolvedSpreadCards,
+          spreadState.layoutId,
+          spreadState.question,
+        )
+      : null,
   )
 
   function createSnapshot(): TrainerState {
@@ -248,6 +290,51 @@
   function updateDailyArea(area: DailyArea): void {
     if (!dailyCardState || dailyCardState.area === area) return
     dailyCardState = changeDailyArea(browserStorage, dailyCardState, area)
+  }
+
+  function persistSpread(): void {
+    saveSpreadState(browserStorage, spreadState)
+  }
+
+  function changeSpreadSettings(
+    patch: Partial<Pick<
+      ThreeCardSpreadState,
+      'layoutId' | 'area' | 'question' | 'reversedEnabled' | 'learningFirst'
+    >>,
+  ): void {
+    spreadState = updateSpreadSettings(spreadState, patch)
+    persistSpread()
+  }
+
+  function dealSpread(): void {
+    if (spreadState.cards.length > 0) return
+    spreadState = dealThreeCardSpread(spreadState, deckIds)
+    persistSpread()
+  }
+
+  function revealSpread(index: number): void {
+    spreadState = revealSpreadCard(spreadState, index)
+    persistSpread()
+  }
+
+  function revealAllSpread(): void {
+    spreadState = revealAllSpreadCards(spreadState)
+    persistSpread()
+  }
+
+  function showSpreadInterpretation(index: number): void {
+    spreadState = revealSpreadInterpretation(spreadState, index)
+    persistSpread()
+  }
+
+  function startNewSpread(): void {
+    if (
+      isSpreadUnfinished(spreadState) &&
+      !window.confirm('Rozečtený výklad ještě není dokončený. Opravdu chcete připravit nový?')
+    ) return
+
+    spreadState = clearSpreadCards(spreadState)
+    persistSpread()
   }
 
   function updateShuffle(enabled: boolean): void {
@@ -400,6 +487,7 @@
     journeyChapterIndex = restored.journeyChapterIndex
     journeyHighestChapterIndex = restored.journeyHighestChapterIndex
     refreshDailyCard()
+    spreadState = loadSpreadState(browserStorage, deckIds, reversedEnabled)
     storageReady = true
 
     if (!hadStoredState) {
@@ -441,7 +529,9 @@
 >
   <AppHeader
     progress={headerProgress}
-    progressLabel={mode === 'journey' ? 'Kapitola' : mode === 'daily' ? 'Karta dne' : 'Pořadí karty'}
+    progressLabel={mode === 'journey'
+      ? 'Kapitola'
+      : mode === 'daily' ? dailyView === 'daily' ? 'Karta dne' : 'Tříkaretní výklad' : 'Pořadí karty'}
   />
 
   <main class="trainer">
@@ -483,15 +573,53 @@
     <IosInstallHint />
 
     {#if mode === 'daily' && dailyCardState}
-      <DailyCard
-        card={currentDailyCard}
-        state={dailyCardState}
-        dateLabel={dailyDateLabel}
-        interpretation={dailyInterpretation}
-        favorite={favoriteCardIds.includes(currentDailyCard.id)}
-        onAreaChange={updateDailyArea}
-        onToggleFavorite={() => toggleFavorite(currentDailyCard.id)}
-      />
+      <div class="daily-subtabs" role="tablist" aria-label="Denní a tříkaretní výklady">
+        <button
+          type="button"
+          role="tab"
+          aria-label="Podzáložka Karta dne"
+          aria-selected={dailyView === 'daily'}
+          class:active={dailyView === 'daily'}
+          onclick={() => dailyView = 'daily'}
+        >
+          Karta dne
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-label="Podzáložka Tři karty"
+          aria-selected={dailyView === 'spread'}
+          class:active={dailyView === 'spread'}
+          onclick={() => dailyView = 'spread'}
+        >
+          Tři karty
+        </button>
+      </div>
+
+      {#if dailyView === 'daily'}
+        <DailyCard
+          card={currentDailyCard}
+          state={dailyCardState}
+          dateLabel={dailyDateLabel}
+          interpretation={dailyInterpretation}
+          favorite={favoriteCardIds.includes(currentDailyCard.id)}
+          onAreaChange={updateDailyArea}
+          onToggleFavorite={() => toggleFavorite(currentDailyCard.id)}
+        />
+      {:else}
+        <ThreeCardSpread
+          state={spreadState}
+          cards={spreadCards}
+          interpretations={spreadInterpretations}
+          combined={combinedSpreadInterpretation}
+          onSettingsChange={changeSpreadSettings}
+          onDeal={dealSpread}
+          onReveal={revealSpread}
+          onRevealAll={revealAllSpread}
+          onRevealInterpretation={showSpreadInterpretation}
+          onNewSpread={startNewSpread}
+        />
+      {/if}
     {:else if mode === 'journey'}
       {#key journeyChapterIndex}
         <FoolsJourney
