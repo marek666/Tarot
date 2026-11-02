@@ -14,6 +14,8 @@
     onNext,
     onStartOver,
     onExit,
+    favorite,
+    onToggleFavorite,
   }: {
     chapter: FoolsJourneyChapter
     card: TarotCard
@@ -25,6 +27,8 @@
     onNext: () => void
     onStartOver: () => void
     onExit: () => void
+    favorite: boolean
+    onToggleFavorite: () => void
   } = $props()
 
   const sectionLabels: Record<FoolsJourneySection, string> = {
@@ -91,6 +95,9 @@
         <p class="chapter-section">{sectionLabels[chapter.section]}</p>
         <p class="card-title"><span>{numerals[index]}</span> {card.nameCs}</p>
         <p class="chapter-number">Kapitola {index + 1} z 22</p>
+        <button type="button" class="journey-favorite" aria-pressed={favorite} aria-label={favorite ? `Odebrat ${card.nameCs} z oblíbených` : `Přidat ${card.nameCs} do oblíbených`} onclick={onToggleFavorite}>
+          <span aria-hidden="true">{favorite ? '★' : '☆'}</span> {favorite ? 'V oblíbených' : 'Do oblíbených'}
+        </button>
       </header>
 
       <figure>
@@ -276,6 +283,19 @@
   .card-meta {
     text-align: center;
   }
+
+  .journey-favorite {
+    min-height: 44px;
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.7rem;
+    color: var(--gold);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .journey-favorite[aria-pressed='true'] { background: rgb(216 184 108 / 12%); }
 
   .chapter-section {
     color: var(--gold);
