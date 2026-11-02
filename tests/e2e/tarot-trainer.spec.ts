@@ -99,7 +99,7 @@ test('studijní relace a pokrok přežijí obnovení stránky', async ({ page })
   await page.setViewportSize({ width: 390, height: 844 })
   await openFreshApp(page)
 
-  await page.getByRole('button', { name: 'Učení' }).click()
+  await navigateMode(page, 'Učení')
   await page.getByRole('button', { name: 'Odhalit význam' }).click()
   await expect(page.locator('.meaning-summary')).toBeVisible()
   await page.locator('.study-actions .practice-button').click()
@@ -143,3 +143,13 @@ test('layout zůstává použitelný po změně orientace', async ({ page }) => 
     await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1),
   ).toBe(true)
 })
+
+async function navigateMode(page: import('@playwright/test').Page, name: string): Promise<void> {
+  const desktop = page.locator('.site-header .desktop-nav').getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true })
+  if (await desktop.isVisible()) {
+    await desktop.click()
+  } else {
+    await page.getByRole('button', { name: 'Otevřít menu' }).click()
+    await page.getByRole('dialog', { name: 'Navigace Tarot Trainer' }).getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true }).click()
+  }
+}
