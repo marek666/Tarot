@@ -1,4 +1,4 @@
-# Tarot Trainer 0.3.2
+# Tarot Trainer 0.3.3 (připravovaná verze)
 
 Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smith. Funguje bez backendu, účtu a připojení po prvním úspěšném načtení. Používá Svelte 5, TypeScript, Vite, čisté CSS, `vite-plugin-pwa` a malé testy nad vestavěným Node test runnerem a Playwrightem.
 
@@ -10,7 +10,8 @@ Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smi
 - Režim Učení s odhalením významu a volbou „Umím“ nebo „Procvičit“.
 - Režim Cesta Blázna: souvislý výukový příběh všech 22 Velkých arkán se symbolikou, lekcemi a klasickým významem karty.
 - Adaptivní čtecí rozhraní Cesty Blázna: jednosloupcový mobil a portrait tablet, vyvážené dva sloupce v landscape a na desktopu a výškově podmíněná sticky ilustrace.
-- Jednotný výběr libovolné karty nebo kapitoly s náhledy, vyhledáváním bez diakritiky a filtry arkán, barev i studijního stavu.
+- Jednotný výběr libovolné karty nebo kapitoly s náhledy, vyhledáváním bez diakritiky a filtry arkán, barev, studijního stavu i oblíbených.
+- Oblíbené karty v Prohlížení, Učení a Cestě Blázna se ukládají lokálně a neovlivňují studijní hodnocení.
 - Kompaktní rozbalovací panel studijního pokroku, který se zobrazuje pouze v režimu Učení.
 - Trvalé verzované uložení režimu, aktuální karty, zamíchaného pořadí, rozdaných orientací a pokroku v `localStorage`.
 - Offline provoz, instalovatelný manifest, lokální public-domain ilustrace a potvrzenou aktualizaci service workeru.
