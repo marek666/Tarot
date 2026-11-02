@@ -154,13 +154,13 @@ test('rychlé přepnutí flipu, navigace a režimu zachová kartu i pokrok', asy
   await openFreshApp(page)
   await goToPosition(page, 8)
   await page.locator('.card-stage').tap()
-  await page.getByRole('button', { name: 'Učení' }).click()
+  await navigateMode(page, 'Učení')
 
   await expect(page.locator('.progress')).toHaveText('8/78')
   await expect(page.locator('.card-inner')).not.toHaveClass(/flipped/)
   await page.getByRole('button', { name: 'Odhalit význam' }).click()
   await expect(page.locator('.card-inner')).toHaveClass(/flipped/)
-  await page.getByRole('button', { name: 'Prohlížení' }).click()
+  await navigateMode(page, 'Prohlížení')
 
   await expect(page.locator('.progress')).toHaveText('8/78')
   await expect(page.locator('.card-inner')).not.toHaveClass(/flipped/)
@@ -187,7 +187,7 @@ test('návrat na předchozí kartu zachová její identitu a orientaci', async (
 
 test('reload po kontrole service workeru zachová studijní pokrok', async ({ page }) => {
   await openFreshApp(page)
-  await page.getByRole('button', { name: 'Učení' }).click()
+  await navigateMode(page, 'Učení')
   await page.getByRole('button', { name: 'Odhalit význam' }).click()
   await page.locator('.study-actions .known-button').click()
   await page.getByRole('button', { name: /Pokrok v učení/ }).click()
@@ -203,3 +203,13 @@ test('reload po kontrole service workeru zachová studijní pokrok', async ({ pa
   await expect(page.locator('.study-progress dd').nth(0)).toHaveText('1')
   await expect(page.getByRole('button', { name: 'Učení', exact: true })).toHaveAttribute('aria-pressed', 'true')
 })
+
+async function navigateMode(page: import('@playwright/test').Page, name: string): Promise<void> {
+  const desktop = page.locator('.site-header .desktop-nav').getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true })
+  if (await desktop.isVisible()) {
+    await desktop.click()
+  } else {
+    await page.getByRole('button', { name: 'Otevřít menu' }).click()
+    await page.getByRole('dialog', { name: 'Navigace Tarot Trainer' }).getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true }).click()
+  }
+}
