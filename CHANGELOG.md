@@ -2,14 +2,19 @@
 
 Všechny podstatné změny projektu jsou evidovány v tomto souboru.
 
-## 0.3.3 — připravuje se
+## 0.3.3 — 2026-11-02
 
 ### Přidáno
 
 - Oblíbené karty (☆/★) v Prohlížení, Učení i Cestě Blázna; oblíbené jsou nezávislé na studijním hodnocení.
+- Sdílené oblíbené také v Kartě dne a přesný počet oblíbených dostupných v aktuálním CardPickeru.
 - Filtr „Pouze oblíbené“ ve společném výběru karet a kapitol.
 - Verzované ukládání oblíbených s migrací v1/v2 → v3 bez ztráty rozpracované relace.
 - Unit testy přidání/odebrání oblíbené karty a migrace uloženého stavu.
+- Samostatný režim Karta dne s lokálním denním losem, uloženou orientací a tematickými oblastmi Obecně, Vztahy, Práce a Osobní rozvoj.
+- Statické offline interpretace všech 624 kombinací 78 karet, čtyř oblastí a dvou orientací včetně konkrétní otázky k zamyšlení.
+- Verzovaný denní klíč oddělený od trainerState, bezpečný výběr přes Web Crypto a obnova po reloadu, změně místního dne i návratu PWA z pozadí.
+- Unit a Playwright testy denního losu, localStorage, Reversed, oblíbených, nového dne, offline režimu a viewportů 320–1920 px.
 
 ## 0.3.2 — 2026-11-02
 

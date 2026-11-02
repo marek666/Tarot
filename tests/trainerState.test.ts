@@ -134,6 +134,21 @@ test('samostatný postup Cestou Blázna a stav panelu se obnoví', () => {
   deepEqual(restored.studyProgress, session.studyProgress)
 })
 
+test('režim Karta dne se obnoví bez změny balíčku a předchozího režimu', () => {
+  const storage = new MemoryStorage()
+  const session = { ...createSavedSession(), mode: 'daily' as const }
+
+  saveTrainerState(storage, session)
+  const restored = loadTrainerState(storage, cardIds)
+
+  equal(restored.mode, 'daily')
+  equal(restored.previousMode, 'study')
+  deepEqual(restored.deckOrderIds, session.deckOrderIds)
+  equal(restored.currentIndex, session.currentIndex)
+  deepEqual(restored.studyProgress, session.studyProgress)
+  deepEqual(restored.favoriteCardIds, session.favoriteCardIds)
+})
+
 test('poškozený JSON se odstraní a nahradí bezpečným výchozím stavem', () => {
   const storage = new MemoryStorage()
   storage.setItem(TRAINER_STATE_KEY, '{neplatný json')

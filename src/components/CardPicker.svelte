@@ -39,6 +39,7 @@
   let favoritesOnly = $state(false)
 
   const filteredCards = $derived(filterPickerCards(cards, { query, group, study }, studyProgress).filter((card) => !favoritesOnly || favoriteCardIds.includes(card.id)))
+  const favoriteCount = $derived(cards.filter((card) => favoriteCardIds.includes(card.id)).length)
 
   function openPicker(): void {
     query = ''
@@ -157,7 +158,7 @@
       {/if}
     </div>
 
-    <label class="favorite-filter"><input type="checkbox" bind:checked={favoritesOnly} /> Pouze oblíbené ({favoriteCardIds.length})</label>
+    <label class="favorite-filter"><input type="checkbox" bind:checked={favoritesOnly} /> Pouze oblíbené ({favoriteCount})</label>
 
     <p class="result-count" aria-live="polite">{filteredCards.length} {filteredCards.length === 1 ? 'karta' : 'karet'}</p>
   </div>

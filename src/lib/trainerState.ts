@@ -201,7 +201,12 @@ export function parseTrainerState(
     }
 
     if (value.version !== 2 && value.version !== TRAINER_STATE_VERSION) return null
-    if (value.mode !== 'browse' && value.mode !== 'study' && value.mode !== 'journey') return null
+    if (
+      value.mode !== 'browse' &&
+      value.mode !== 'study' &&
+      value.mode !== 'journey' &&
+      value.mode !== 'daily'
+    ) return null
     if (value.previousMode !== 'browse' && value.previousMode !== 'study') return null
     const fields = parseSessionFields(value, validCardIds, value.mode)
     if (!fields || typeof value.studyProgressExpanded !== 'boolean') return null
@@ -288,8 +293,10 @@ export function saveTrainerState(storage: StorageLike, state: TrainerState): boo
 }
 
 export function changeTrainerMode(state: TrainerState, mode: TrainerMode): TrainerState {
-  const previousMode: ClassicTrainerMode = mode === 'journey'
-    ? state.mode === 'journey' ? state.previousMode : state.mode
+  const isSpecialMode = (candidate: TrainerMode): candidate is 'journey' | 'daily' =>
+    candidate === 'journey' || candidate === 'daily'
+  const previousMode: ClassicTrainerMode = isSpecialMode(mode)
+    ? isSpecialMode(state.mode) ? state.previousMode : state.mode
     : mode
   return { ...state, mode, previousMode }
 }

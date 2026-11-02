@@ -2,7 +2,7 @@ export type CardOrientation = 'upright' | 'reversed'
 
 export type ClassicTrainerMode = 'browse' | 'study'
 
-export type TrainerMode = ClassicTrainerMode | 'journey'
+export type TrainerMode = ClassicTrainerMode | 'journey' | 'daily'
 
 export type StudyRating = 'known' | 'practice'
 

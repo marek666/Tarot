@@ -66,17 +66,18 @@ h2 {
 }
 
 @media (min-width: 601px) {
-  .app-shell.journey-mode {
+  .app-shell.journey-mode,
+  .app-shell.daily-mode {
     width: min(100%, 68rem);
   }
 }
 
 @media (min-width: 900px) {
-  .app-shell:not(.journey-mode) {
+  .app-shell:not(.journey-mode):not(.daily-mode) {
     width: min(100%, 46rem);
   }
 
-  .app-shell:not(.journey-mode) :is(
+  .app-shell:not(.journey-mode):not(.daily-mode) :is(
     .trainer-mode-switch,
     .picker-trigger,
     .study-progress,
@@ -93,6 +94,10 @@ h2 {
 @media (min-width: 1100px) {
   .app-shell.journey-mode {
     width: min(100%, 86rem);
+  }
+
+  .app-shell.daily-mode {
+    width: min(100%, 72rem);
   }
 }
 
@@ -169,11 +174,17 @@ h2 {
   width: min(100%, 25rem);
   padding: 0.25rem;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.25rem;
   background: #091525;
   border: 1px solid var(--border);
   border-radius: 0.85rem;
+}
+
+@media (min-width: 600px) {
+  .trainer-mode-switch {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .trainer-mode-switch button {

@@ -2,6 +2,8 @@ import { access, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { foolsJourney } from '../src/data/foolsJourney.ts'
 import { tarotDeck } from '../src/data/tarotDeck.ts'
+import { getDailyInterpretation } from '../src/lib/dailyInterpretation.ts'
+import { DAILY_AREAS } from '../src/types/dailyCard.ts'
 
 function readJpegDimensions(file: Buffer): readonly [number, number] | null {
   if (file.length < 4 || file[0] !== 0xff || file[1] !== 0xd8) return null
@@ -52,4 +54,23 @@ await Promise.all(
   }),
 )
 
-console.log(`Tarotová data: 78 karet, ${foolsJourney.length} kapitol Cesty Blázna, významy a lokální ilustrace ověřeny.`)
+let dailyInterpretationCount = 0
+for (const card of tarotDeck) {
+  for (const orientation of ['upright', 'reversed'] as const) {
+    for (const area of DAILY_AREAS) {
+      const interpretation = getDailyInterpretation(card, orientation, area)
+      if (
+        interpretation.keywords.length < 3 ||
+        interpretation.keywords.length > 5 ||
+        !interpretation.summary.trim() ||
+        !interpretation.traditionalConnection.trim() ||
+        !interpretation.reflectionQuestion.trim().endsWith('?')
+      ) {
+        throw new Error(`${card.id}/${orientation}/${area}: denní výklad není kompletní.`)
+      }
+      dailyInterpretationCount += 1
+    }
+  }
+}
+
+console.log(`Tarotová data: 78 karet, ${foolsJourney.length} kapitol Cesty Blázna, ${dailyInterpretationCount} tematických kombinací, významy a lokální ilustrace ověřeny.`)
