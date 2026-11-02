@@ -8,7 +8,7 @@ async function openFreshApp(page: Page): Promise<void> {
 }
 
 async function openDailyCard(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Karta dne', exact: true }).click()
+  await navigateMode(page, 'Karta dne')
   await expect(page.locator('.daily-card')).toBeVisible()
 }
 
@@ -70,11 +70,11 @@ test('Karta dne nemění hlavní balíček, Shuffle ani studijní pokrok', async
   await openDailyCard(page)
   const dailyCardId = await page.locator('.daily-card').getAttribute('data-card-id')
   await page.getByRole('button', { name: 'Práce', exact: true }).click()
-  await page.getByRole('button', { name: 'Učení', exact: true }).click()
-  await page.getByRole('button', { name: 'Karta dne', exact: true }).click()
+  await navigateMode(page, 'Učení')
+  await navigateMode(page, 'Karta dne')
   await expect(page.locator('.daily-card')).toHaveAttribute('data-card-id', dailyCardId!)
   await expect(page.locator('.daily-card')).toHaveAttribute('data-area', 'work')
-  await page.getByRole('button', { name: 'Učení', exact: true }).click()
+  await navigateMode(page, 'Učení')
 
   const after = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot-trainer:state')!))
   expect(after.deckOrderIds).toEqual(before.deckOrderIds)
@@ -102,7 +102,7 @@ test('oblíbená Karta dne se projeví ve společném filtru', async ({ page }) 
   await page.reload()
   await openDailyCard(page)
   await page.getByRole('button', { name: 'Přidat Sedmička pohárů do oblíbených' }).click()
-  await page.getByRole('button', { name: 'Prohlížení', exact: true }).click()
+  await navigateMode(page, 'Prohlížení')
   await page.getByRole('button', { name: 'Vybrat kartu', exact: true }).click()
   await page.getByLabel(/Pouze oblíbené/).check()
 
@@ -172,4 +172,14 @@ for (const viewport of [
       })
     }
   })
+}
+
+async function navigateMode(page: import('@playwright/test').Page, name: string): Promise<void> {
+  const desktop = page.locator('.site-header .desktop-nav').getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true })
+  if (await desktop.isVisible()) {
+    await desktop.click()
+  } else {
+    await page.getByRole('button', { name: 'Otevřít menu' }).click()
+    await page.getByRole('dialog', { name: 'Navigace Tarot Trainer' }).getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true }).click()
+  }
 }
