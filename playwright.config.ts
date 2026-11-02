@@ -14,7 +14,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     launchOptions: {
-      executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH ?? '/usr/bin/chromium-browser',
+      executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH ?? (process.env.CI ? undefined : '/usr/bin/chromium-browser'),
     },
   },
   webServer: {
