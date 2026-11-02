@@ -1,5 +1,5 @@
 import type { DailyArea, DailyCardState } from './dailyCard.ts'
-import type { SpreadLayoutId, SpreadCardState, ThreeCardSpreadState } from './spread.ts'
+import type { SpreadLayoutId, SpreadCardState } from './spread.ts'
 
 export interface JournalBase {
   id: string
