@@ -178,7 +178,10 @@
     journeyHighestChapterIndex = Math.max(journeyHighestChapterIndex, index)
     persistSession()
     window.requestAnimationFrame(() => {
-      document.getElementById('journey-chapter-title')?.scrollIntoView({ block: 'start' })
+      document.getElementById('journey-chapter-start')?.scrollIntoView({
+        block: 'start',
+        behavior: 'auto',
+      })
     })
   }
 

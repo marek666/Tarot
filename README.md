@@ -1,4 +1,4 @@
-# Tarot Trainer 0.3.1
+# Tarot Trainer 0.3.2
 
 Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smith. Funguje bez backendu, účtu a připojení po prvním úspěšném načtení. Používá Svelte 5, TypeScript, Vite, čisté CSS, `vite-plugin-pwa` a malé testy nad vestavěným Node test runnerem a Playwrightem.
 
@@ -9,6 +9,7 @@ Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smi
 - Plynulé 3D otočení, navigaci tlačítky, vodorovným swipem a klávesami se zohledněním `prefers-reduced-motion`.
 - Režim Učení s odhalením významu a volbou „Umím“ nebo „Procvičit“.
 - Režim Cesta Blázna: souvislý výukový příběh všech 22 Velkých arkán se symbolikou, lekcemi a klasickým významem karty.
+- Adaptivní čtecí rozhraní Cesty Blázna: jednosloupcový mobil a portrait tablet, vyvážené dva sloupce v landscape a na desktopu a výškově podmíněná sticky ilustrace.
 - Jednotný výběr libovolné karty nebo kapitoly s náhledy, vyhledáváním bez diakritiky a filtry arkán, barev i studijního stavu.
 - Kompaktní rozbalovací panel studijního pokroku, který se zobrazuje pouze v režimu Učení.
 - Trvalé verzované uložení režimu, aktuální karty, zamíchaného pořadí, rozdaných orientací a pokroku v `localStorage`.
@@ -36,7 +37,7 @@ tests/
 
 ## Spuštění na Fedoře
 
-Projekt vyžaduje Node.js 22.18 nebo novější a npm. Pro browser testy je na Fedoře potřeba Chromium.
+Projekt vyžaduje Node.js 22.18 nebo novější v rámci hlavní řady 22.x a npm. Stejná řada je nastavená pro Vercel, aby build nepřecházel automaticky na budoucí hlavní verzi. Pro browser testy je na Fedoře potřeba Chromium.
 
 ```bash
 sudo dnf install nodejs npm chromium

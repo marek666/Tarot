@@ -2,6 +2,27 @@
 
 Všechny podstatné změny projektu jsou evidovány v tomto souboru.
 
+## 0.3.2 — 2026-11-02
+
+### Změněno
+
+- Cesta Blázna používá adaptivní jednosloupcové rozložení na mobilu a portrait tabletu a široké dva sloupce v landscape a na desktopu.
+- Levý sloupec obsahuje kartu a její metadata, pravý sloupec vede názvem kapitoly a čtecím textem omezeným na přibližně 72 znaků na řádek.
+- Informační sekce používají lehčí typografické oddělení a méně dekorativních rámečků.
+- Desktopové ovládání režimů Prohlížení a Učení je mírně rozšířené bez změny struktury obrazovky.
+- Node.js engine je omezen na kompatibilní řadu `>=22.18.0 <23` pro shodu lokálního a Vercel prostředí.
+
+### Přidáno
+
+- Sticky ilustrace pouze pro desktopové viewporty od 1100×900 px, kde se vejde bez ořezu.
+- Automatické full-page screenshoty deseti mobilních, tabletových a desktopových viewportů a screenshoty dialogu výběru kapitoly.
+- Regresní testy přechodu mezi kapitolami po scrollování, návratu z klasického významu, změny orientace tabletu a responzivních šířek.
+
+### Opraveno
+
+- Tabletový text se již netlačí do úzkého sloupce uvnitř původního 38rem obalu.
+- Změna kapitoly vrátí čtenáře na začátek nového obsahu a zavření klasického významu obnoví předchozí pozici příběhu.
+
 ## 0.3.1 — 2026-11-02
 
 ### Přidáno
