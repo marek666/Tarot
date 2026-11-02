@@ -27,7 +27,7 @@
   let draftNote = $state('')
   let message = $state('')
   let fileInput = $state<HTMLInputElement>()
-  const cardById = new Map(cards.map(c => [c.id, c]))
+  const cardById = $derived(new Map(cards.map(c => [c.id, c])))
   const visible = $derived(journal.entries.filter(e => filter === 'all' || e.type === filter))
   const selected = $derived(journal.entries.find(e => e.id === selectedId) ?? null)
 
