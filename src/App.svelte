@@ -317,6 +317,8 @@
     const entry = journalFromSpread(spreadState)
     if (!entry) return
     if (journalState.entries.length >= JOURNAL_LIMIT) { journalError = 'Deník je plný (100 záznamů).'; return }
+    const previous = journalState.entries.find(e => e.id === entry.id)
+    if (previous) { journalError = 'Tento výklad už je v deníku.'; return }
     persistJournal(addJournalEntry(journalState, entry))
   }
 
@@ -343,6 +345,10 @@
     if (!imported) { journalError = 'Soubor není platným deníkem Tarot Trainer.'; return }
     const merged = mergeJournal(journalState, imported)
     const added = merged.entries.length - journalState.entries.length
+    if (journalState.entries.length + imported.entries.filter(e => !journalState.entries.some(existing => existing.id === e.id)).length > JOURNAL_LIMIT) {
+      journalError = 'Import překračuje limit 100 záznamů. Nejdřív některé záznamy exportujte a odstraňte.'
+      return
+    }
     if (!window.confirm(`Importovat ${imported.entries.length} záznamů? Nových: ${Math.max(0,added)}. Existující záznamy zůstanou zachované.`)) return
     persistJournal(merged)
   }
