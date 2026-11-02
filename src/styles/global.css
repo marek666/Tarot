@@ -203,6 +203,22 @@ h2 {
   outline-offset: 3px;
 }
 
+.favorite-toggle {
+  align-self: center;
+  min-height: 44px;
+  min-width: 9rem;
+  padding: 0.55rem 0.9rem;
+  color: var(--gold);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+
+.favorite-toggle[aria-pressed='true'] { background: rgb(216 184 108 / 12%); }
+.favorite-toggle:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
 .study-progress {
   width: min(100%, 25rem);
   padding: 0;
