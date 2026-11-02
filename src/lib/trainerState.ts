@@ -1,15 +1,17 @@
 import { createEmptyStudyProgress } from './studyProgress.ts'
 import type {
   CardOrientation,
+  ClassicTrainerMode,
   StudyProgress,
   StudyRating,
   TrainerMode,
   TrainerState,
 } from '../types/trainer.ts'
 
-export const TRAINER_STATE_VERSION = 1
+export const TRAINER_STATE_VERSION = 2
 export const TRAINER_STATE_KEY = 'tarot-trainer:state'
 export const LEGACY_SETTINGS_KEY = 'tarot-trainer:settings'
+const JOURNEY_CHAPTER_COUNT = 22
 
 export interface StorageLike {
   getItem(key: string): string | null
@@ -90,6 +92,68 @@ function parseStudyProgress(value: unknown, validIds: Set<string>): StudyProgres
   return { knownCardIds, practiceCardIds, orientationProgress }
 }
 
+interface ParsedSessionFields {
+  shuffleEnabled: boolean
+  reversedEnabled: boolean
+  deckOrderIds: string[]
+  currentIndex: number
+  orientations: Array<CardOrientation | null>
+  studyRevealed: boolean
+  studyProgress: StudyProgress
+}
+
+function parseSessionFields(
+  value: Record<string, unknown>,
+  validCardIds: readonly string[],
+  mode: TrainerMode,
+): ParsedSessionFields | null {
+  if (typeof value.shuffleEnabled !== 'boolean' || typeof value.reversedEnabled !== 'boolean') {
+    return null
+  }
+  if (!isStringArray(value.deckOrderIds)) return null
+  if (!containsSameUniqueIds(value.deckOrderIds, validCardIds)) return null
+  if (
+    typeof value.currentIndex !== 'number' ||
+    !Number.isInteger(value.currentIndex) ||
+    value.currentIndex < 0 ||
+    value.currentIndex >= value.deckOrderIds.length
+  ) {
+    return null
+  }
+  if (
+    !Array.isArray(value.orientations) ||
+    value.orientations.length !== value.deckOrderIds.length ||
+    !value.orientations.every(
+      (orientation) =>
+        orientation === null || orientation === 'upright' || orientation === 'reversed',
+    )
+  ) {
+    return null
+  }
+  if (
+    value.orientations
+      .slice(0, value.currentIndex + 1)
+      .some((orientation) => orientation === null)
+  ) {
+    return null
+  }
+  if (typeof value.studyRevealed !== 'boolean') return null
+  if (mode === 'browse' && value.studyRevealed) return null
+
+  const studyProgress = parseStudyProgress(value.studyProgress, new Set(validCardIds))
+  if (!studyProgress) return null
+
+  return {
+    shuffleEnabled: value.shuffleEnabled,
+    reversedEnabled: value.reversedEnabled,
+    deckOrderIds: [...value.deckOrderIds],
+    currentIndex: value.currentIndex,
+    orientations: [...value.orientations] as Array<CardOrientation | null>,
+    studyRevealed: value.studyRevealed,
+    studyProgress,
+  }
+}
+
 export function createDefaultTrainerState(
   cardIds: readonly string[],
   settings: InitialSettings = {},
@@ -100,6 +164,7 @@ export function createDefaultTrainerState(
   return {
     version: TRAINER_STATE_VERSION,
     mode: 'browse',
+    previousMode: 'browse',
     shuffleEnabled: settings.shuffleEnabled === true,
     reversedEnabled: settings.reversedEnabled === true,
     deckOrderIds: [...cardIds],
@@ -107,6 +172,9 @@ export function createDefaultTrainerState(
     orientations,
     studyRevealed: false,
     studyProgress: createEmptyStudyProgress(),
+    studyProgressExpanded: false,
+    journeyChapterIndex: 0,
+    journeyHighestChapterIndex: 0,
   }
 }
 
@@ -116,55 +184,50 @@ export function parseTrainerState(
 ): TrainerState | null {
   try {
     const value: unknown = JSON.parse(raw)
-    if (!isRecord(value) || value.version !== TRAINER_STATE_VERSION) return null
-    if (value.mode !== 'browse' && value.mode !== 'study') return null
-    if (typeof value.shuffleEnabled !== 'boolean' || typeof value.reversedEnabled !== 'boolean') {
-      return null
-    }
-    if (!isStringArray(value.deckOrderIds)) return null
-    if (!containsSameUniqueIds(value.deckOrderIds, validCardIds)) return null
-    if (
-      typeof value.currentIndex !== 'number' ||
-      !Number.isInteger(value.currentIndex) ||
-      value.currentIndex < 0 ||
-      value.currentIndex >= value.deckOrderIds.length
-    ) {
-      return null
-    }
-    if (
-      !Array.isArray(value.orientations) ||
-      value.orientations.length !== value.deckOrderIds.length ||
-      !value.orientations.every(
-        (orientation) =>
-          orientation === null || orientation === 'upright' || orientation === 'reversed',
-      )
-    ) {
-      return null
-    }
-    if (
-      value.orientations
-        .slice(0, value.currentIndex + 1)
-        .some((orientation) => orientation === null)
-    ) {
-      return null
-    }
-    if (typeof value.studyRevealed !== 'boolean') return null
-    if (value.mode === 'browse' && value.studyRevealed) return null
+    if (!isRecord(value)) return null
 
-    const validIds = new Set(validCardIds)
-    const studyProgress = parseStudyProgress(value.studyProgress, validIds)
-    if (!studyProgress) return null
+    if (value.version === 1) {
+      if (value.mode !== 'browse' && value.mode !== 'study') return null
+      const fields = parseSessionFields(value, validCardIds, value.mode)
+      if (!fields) return null
+
+      return {
+        version: TRAINER_STATE_VERSION,
+        mode: value.mode,
+        previousMode: value.mode,
+        ...fields,
+        studyProgressExpanded: false,
+        journeyChapterIndex: 0,
+        journeyHighestChapterIndex: 0,
+      }
+    }
+
+    if (value.version !== TRAINER_STATE_VERSION) return null
+    if (value.mode !== 'browse' && value.mode !== 'study' && value.mode !== 'journey') return null
+    if (value.previousMode !== 'browse' && value.previousMode !== 'study') return null
+    const fields = parseSessionFields(value, validCardIds, value.mode)
+    if (!fields || typeof value.studyProgressExpanded !== 'boolean') return null
+    if (
+      typeof value.journeyChapterIndex !== 'number' ||
+      !Number.isInteger(value.journeyChapterIndex) ||
+      value.journeyChapterIndex < 0 ||
+      value.journeyChapterIndex >= JOURNEY_CHAPTER_COUNT ||
+      typeof value.journeyHighestChapterIndex !== 'number' ||
+      !Number.isInteger(value.journeyHighestChapterIndex) ||
+      value.journeyHighestChapterIndex < value.journeyChapterIndex ||
+      value.journeyHighestChapterIndex >= JOURNEY_CHAPTER_COUNT
+    ) {
+      return null
+    }
 
     return {
       version: TRAINER_STATE_VERSION,
       mode: value.mode,
-      shuffleEnabled: value.shuffleEnabled,
-      reversedEnabled: value.reversedEnabled,
-      deckOrderIds: [...value.deckOrderIds],
-      currentIndex: value.currentIndex,
-      orientations: [...value.orientations] as Array<CardOrientation | null>,
-      studyRevealed: value.studyRevealed,
-      studyProgress,
+      previousMode: value.previousMode,
+      ...fields,
+      studyProgressExpanded: value.studyProgressExpanded,
+      journeyChapterIndex: value.journeyChapterIndex,
+      journeyHighestChapterIndex: value.journeyHighestChapterIndex,
     }
   } catch {
     return null
@@ -217,5 +280,8 @@ export function saveTrainerState(storage: StorageLike, state: TrainerState): boo
 }
 
 export function changeTrainerMode(state: TrainerState, mode: TrainerMode): TrainerState {
-  return { ...state, mode }
+  const previousMode: ClassicTrainerMode = mode === 'journey'
+    ? state.mode === 'journey' ? state.previousMode : state.mode
+    : mode
+  return { ...state, mode, previousMode }
 }

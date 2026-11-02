@@ -8,7 +8,7 @@ import {
   saveTrainerState,
   type StorageLike,
 } from '../src/lib/trainerState.ts'
-import type { TrainerState } from '../src/types/trainer.ts'
+import type { TrainerState, TrainerStateV1 } from '../src/types/trainer.ts'
 
 class MemoryStorage implements StorageLike {
   readonly values = new Map<string, string>()
@@ -32,8 +32,9 @@ const cardIds = ['a', 'b', 'c', 'd']
 
 function createSavedSession(): TrainerState {
   return {
-    version: 1,
+    version: 2,
     mode: 'study',
+    previousMode: 'study',
     shuffleEnabled: true,
     reversedEnabled: true,
     deckOrderIds: ['c', 'a', 'd', 'b'],
@@ -48,6 +49,24 @@ function createSavedSession(): TrainerState {
         c: { reversed: 'practice' },
       },
     },
+    studyProgressExpanded: true,
+    journeyChapterIndex: 8,
+    journeyHighestChapterIndex: 12,
+  }
+}
+
+function createLegacySession(): TrainerStateV1 {
+  const current = createSavedSession()
+  return {
+    version: 1,
+    mode: current.mode === 'journey' ? 'browse' : current.mode,
+    shuffleEnabled: current.shuffleEnabled,
+    reversedEnabled: current.reversedEnabled,
+    deckOrderIds: current.deckOrderIds,
+    currentIndex: current.currentIndex,
+    orientations: current.orientations,
+    studyRevealed: current.studyRevealed,
+    studyProgress: current.studyProgress,
   }
 }
 
@@ -67,6 +86,36 @@ test('uložený pokrok zůstane zachovaný při přepnutí režimu', () => {
   deepEqual(studyingAgain.studyProgress, session.studyProgress)
   deepEqual(studyingAgain.deckOrderIds, session.deckOrderIds)
   equal(studyingAgain.currentIndex, session.currentIndex)
+})
+
+test('stav verze 0.2.x se migruje bez ztráty studijních dat', () => {
+  const storage = new MemoryStorage()
+  const legacy = createLegacySession()
+  storage.setItem(TRAINER_STATE_KEY, JSON.stringify(legacy))
+
+  const migrated = loadTrainerState(storage, cardIds)
+
+  equal(migrated.version, 2)
+  deepEqual(migrated.studyProgress, legacy.studyProgress)
+  deepEqual(migrated.deckOrderIds, legacy.deckOrderIds)
+  equal(migrated.currentIndex, legacy.currentIndex)
+  equal(migrated.studyProgressExpanded, false)
+  equal(migrated.journeyChapterIndex, 0)
+})
+
+test('samostatný postup Cestou Blázna a stav panelu se obnoví', () => {
+  const storage = new MemoryStorage()
+  const session = { ...createSavedSession(), mode: 'journey' as const }
+
+  saveTrainerState(storage, session)
+  const restored = loadTrainerState(storage, cardIds)
+
+  equal(restored.mode, 'journey')
+  equal(restored.previousMode, 'study')
+  equal(restored.journeyChapterIndex, 8)
+  equal(restored.journeyHighestChapterIndex, 12)
+  equal(restored.studyProgressExpanded, true)
+  deepEqual(restored.studyProgress, session.studyProgress)
 })
 
 test('poškozený JSON se odstraní a nahradí bezpečným výchozím stavem', () => {

@@ -21,7 +21,7 @@ const MAJOR_ARCANA = [
   ['major-11-justice', 'Spravedlnost', 'Justice'],
   ['major-12-hanged-man', 'Viselec', 'The Hanged Man'],
   ['major-13-death', 'Smrt', 'Death'],
-  ['major-14-temperance', 'Umírněnost', 'Temperance'],
+  ['major-14-temperance', 'Mírnost', 'Temperance'],
   ['major-15-devil', 'Ďábel', 'The Devil'],
   ['major-16-tower', 'Věž', 'The Tower'],
   ['major-17-star', 'Hvězda', 'The Star'],

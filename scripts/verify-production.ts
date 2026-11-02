@@ -9,7 +9,7 @@ async function fetchPublic(pathname: string, method: 'GET' | 'HEAD' = 'GET'): Pr
   const response = await fetch(new URL(pathname, productionOrigin), {
     method,
     redirect: 'follow',
-    headers: { 'user-agent': 'TarotTrainerProductionVerifier/0.2.3' },
+    headers: { 'user-agent': 'TarotTrainerProductionVerifier/0.3.0' },
   })
   equal(response.status, 200, `${pathname} není veřejně dostupné (HTTP ${response.status}).`)
   ok(!/vercel\.com\/(?:login|sso)/.test(response.url), `${pathname} přesměrovalo na přihlášení.`)
@@ -21,6 +21,16 @@ match(indexResponse.headers.get('content-type') ?? '', /text\/html/)
 const indexHtml = await indexResponse.text()
 match(indexHtml, /Tarot Trainer/)
 match(indexHtml, /manifest\.webmanifest/)
+
+const applicationScripts = [...indexHtml.matchAll(/<script[^>]+src="([^"]+\.js)"/g)]
+  .map((matchResult) => matchResult[1])
+  .filter((pathname): pathname is string => pathname !== undefined)
+ok(applicationScripts.length > 0, 'Produkční HTML neobsahuje aplikační JavaScript.')
+const applicationJavaScript = (
+  await Promise.all(applicationScripts.map(async (pathname) => (await fetchPublic(pathname)).text()))
+).join('\n')
+match(applicationJavaScript, /Cesta Blázna/, 'Produkční bundle neobsahuje Cestu Blázna.')
+match(applicationJavaScript, /journeyChapterIndex/, 'Produkční bundle neobsahuje uložený postup příběhem.')
 
 const manifestResponse = await fetchPublic('/manifest.webmanifest')
 match(manifestResponse.headers.get('content-type') ?? '', /application\/manifest\+json/)

@@ -2,6 +2,20 @@
 
 Všechny podstatné změny projektu jsou evidovány v tomto souboru.
 
+## 0.3.0 — 2026-11-02
+
+### Přidáno
+
+- Samostatný offline režim Cesta Blázna s 22 navazujícími kapitolami Velkých arkán, původními ilustracemi, symbolikou, lekcemi, klíčovými slovy a vazbou na klasický význam.
+- Výběr libovolné kapitoly, návrat do předchozího režimu a samostatné uložení poslední i nejvyšší dosažené kapitoly.
+- Kompaktní, přístupný a lokálně uložený panel studijního pokroku pouze v režimu Učení.
+- Validace příběhových dat a Playwright scénáře pro navigaci, obnovení, offline provoz, migraci a responzivitu.
+
+### Změněno
+
+- Schéma relace bylo povýšeno na verzi 2 s automatickou migrací dat z 0.2.x bez ztráty studijního pokroku.
+- Český název XIV Velké arkány je sjednocen na „Mírnost“.
+
 ## 0.2.3 — 2026-11-01
 
 ### Opraveno

@@ -1,5 +1,6 @@
 import { access, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
+import { foolsJourney } from '../src/data/foolsJourney.ts'
 import { tarotDeck } from '../src/data/tarotDeck.ts'
 
 function readJpegDimensions(file: Buffer): readonly [number, number] | null {
@@ -51,4 +52,4 @@ await Promise.all(
   }),
 )
 
-console.log('Tarotová data: 78 karet, kanonické názvy, pořadí, významy a lokální ilustrace ověřeny.')
+console.log(`Tarotová data: 78 karet, ${foolsJourney.length} kapitol Cesty Blázna, významy a lokální ilustrace ověřeny.`)

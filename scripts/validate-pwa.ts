@@ -71,6 +71,9 @@ const applicationJavaScript = (
 match(applicationJavaScript, /Velekněžka/, 'Produkční bundle neobsahuje česká data karet.')
 match(applicationJavaScript, /Obrácený Ďábel/, 'Produkční bundle neobsahuje obrácené české významy.')
 match(applicationJavaScript, /tarot-trainer:state/, 'Produkční bundle neobsahuje trvalé uložení pokroku.')
+match(applicationJavaScript, /Cesta Blázna/, 'Produkční bundle neobsahuje režim Cesta Blázna.')
+match(applicationJavaScript, /První krok/, 'Produkční bundle neobsahuje příběhová data Cesty Blázna.')
+match(applicationJavaScript, /journeyChapterIndex/, 'Produkční bundle neobsahuje uložení rozečtené kapitoly.')
 
 console.log(
   'PWA: manifest, ikony, aktualizace, česká data, pokrok a všech 78 obrázků jsou ověřené pro offline provoz.',

@@ -1,5 +1,11 @@
 <script lang="ts">
-  let { progress }: { progress: string } = $props()
+  let {
+    progress,
+    progressLabel = 'Pořadí karty',
+  }: {
+    progress: string
+    progressLabel?: string
+  } = $props()
 </script>
 
 <header class="site-header">
@@ -7,5 +13,5 @@
     <span class="brand-mark" aria-hidden="true">✦</span>
     <span>Tarot Trainer</span>
   </h1>
-  <span class="progress" aria-label={`Pořadí karty ${progress}`}>{progress}</span>
+  <span class="progress" aria-label={`${progressLabel} ${progress}`}>{progress}</span>
 </header>

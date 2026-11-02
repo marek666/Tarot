@@ -1,9 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import AppHeader from './components/AppHeader.svelte'
+  import FoolsJourney from './components/FoolsJourney.svelte'
   import IosInstallHint from './components/IosInstallHint.svelte'
   import PwaUpdatePrompt from './components/PwaUpdatePrompt.svelte'
+  import StudyProgressPanel from './components/StudyProgressPanel.svelte'
   import TarotCard from './components/TarotCard.svelte'
+  import { foolsJourney } from './data/foolsJourney.ts'
   import { tarotDeck } from './data/tarotDeck.ts'
   import {
     applyReversedSetting,
@@ -28,6 +31,7 @@
   import type { TarotCard as TarotCardData, TarotSuit } from './types/tarot.ts'
   import type {
     CardOrientation,
+    ClassicTrainerMode,
     StudyProgress,
     StudyRating,
     TrainerMode,
@@ -36,6 +40,7 @@
 
   const deckIds = tarotDeck.map((card) => card.id)
   const cardsById = new Map(tarotDeck.map((card) => [card.id, card]))
+  const journeyCards = foolsJourney.map((chapter) => cardsById.get(chapter.cardId)!)
   const suitLabels: Record<TarotSuit, string> = {
     wands: 'Hole',
     cups: 'Poháry',
@@ -44,6 +49,7 @@
   }
 
   let mode = $state<TrainerMode>('browse')
+  let previousMode = $state<ClassicTrainerMode>('browse')
   let shuffleEnabled = $state(false)
   let reversedEnabled = $state(false)
   let deckOrder = $state<TarotCardData[]>([...tarotDeck])
@@ -55,6 +61,9 @@
   let currentIndex = $state(0)
   let cardViewKey = $state(0)
   let studyRevealed = $state(false)
+  let studyProgressExpanded = $state(false)
+  let journeyChapterIndex = $state(0)
+  let journeyHighestChapterIndex = $state(0)
   let sessionReady = $state(false)
   let storageReady = false
   let revealButton = $state<HTMLButtonElement>()
@@ -63,6 +72,11 @@
   const currentCard = $derived(deckOrder[currentIndex]!)
   const currentOrientation = $derived(orientations[currentIndex] ?? 'upright')
   const traversalProgress = $derived(`${currentIndex + 1}/${deckOrder.length}`)
+  const headerProgress = $derived(
+    mode === 'journey' ? `${journeyChapterIndex + 1}/${foolsJourney.length}` : traversalProgress,
+  )
+  const currentJourneyChapter = $derived(foolsJourney[journeyChapterIndex]!)
+  const currentJourneyCard = $derived(journeyCards[journeyChapterIndex]!)
   const groupLabel = $derived(
     currentCard.arcana === 'major' ? 'Velká arkána' : suitLabels[currentCard.suit!],
   )
@@ -78,6 +92,7 @@
     return {
       version: TRAINER_STATE_VERSION,
       mode,
+      previousMode,
       shuffleEnabled,
       reversedEnabled,
       deckOrderIds: deckOrder.map((card) => card.id),
@@ -89,6 +104,9 @@
         practiceCardIds: [...studyProgress.practiceCardIds],
         orientationProgress: { ...studyProgress.orientationProgress },
       },
+      studyProgressExpanded,
+      journeyChapterIndex,
+      journeyHighestChapterIndex,
     }
   }
 
@@ -124,8 +142,55 @@
   function updateMode(nextMode: TrainerMode): void {
     if (mode === nextMode) return
 
+    if (nextMode === 'journey') {
+      previousMode = mode === 'journey' ? previousMode : mode
+      mode = 'journey'
+      persistSession()
+      return
+    }
+
+    if (mode === 'journey') {
+      mode = nextMode
+      previousMode = nextMode
+      if (nextMode === 'browse') studyRevealed = false
+      cardViewKey += 1
+      persistSession()
+      return
+    }
+
     mode = nextMode
+    previousMode = nextMode
     resetCardView()
+    persistSession()
+  }
+
+  function exitJourney(): void {
+    if (mode !== 'journey') return
+    mode = previousMode
+    cardViewKey += 1
+    persistSession()
+  }
+
+  function selectJourneyChapter(index: number): void {
+    if (!Number.isInteger(index) || index < 0 || index >= foolsJourney.length) return
+    journeyChapterIndex = index
+    journeyHighestChapterIndex = Math.max(journeyHighestChapterIndex, index)
+    persistSession()
+    window.requestAnimationFrame(() => {
+      document.getElementById('journey-chapter-title')?.scrollIntoView({ block: 'start' })
+    })
+  }
+
+  function showPreviousJourneyChapter(): void {
+    selectJourneyChapter(Math.max(0, journeyChapterIndex - 1))
+  }
+
+  function showNextJourneyChapter(): void {
+    selectJourneyChapter(Math.min(foolsJourney.length - 1, journeyChapterIndex + 1))
+  }
+
+  function toggleStudyProgress(): void {
+    studyProgressExpanded = !studyProgressExpanded
     persistSession()
   }
 
@@ -204,6 +269,18 @@
     const target = event.target as HTMLElement | null
     if (target?.closest('details, input, textarea, select')) return
 
+    if (mode === 'journey') {
+      if (event.key === 'ArrowLeft' && journeyChapterIndex > 0) {
+        event.preventDefault()
+        showPreviousJourneyChapter()
+      }
+      if (event.key === 'ArrowRight' && journeyChapterIndex < foolsJourney.length - 1) {
+        event.preventDefault()
+        showNextJourneyChapter()
+      }
+      return
+    }
+
     if (event.key === 'ArrowLeft' && !shuffleEnabled && currentIndex > 0) {
       event.preventDefault()
       showPrevious()
@@ -225,6 +302,7 @@
 
     const restored = loadTrainerState(window.localStorage, deckIds)
     mode = restored.mode
+    previousMode = restored.previousMode
     shuffleEnabled = restored.shuffleEnabled
     reversedEnabled = restored.reversedEnabled
     deckOrder = restored.deckOrderIds.map((id) => cardsById.get(id)!)
@@ -232,18 +310,16 @@
     currentIndex = restored.currentIndex
     studyRevealed = restored.studyRevealed
     studyProgress = restored.studyProgress
+    studyProgressExpanded = restored.studyProgressExpanded
+    journeyChapterIndex = restored.journeyChapterIndex
+    journeyHighestChapterIndex = restored.journeyHighestChapterIndex
     storageReady = true
 
     if (!hadStoredState) {
       beginTraversal()
     } else {
       cardViewKey += 1
-
-      try {
-        if (!window.localStorage.getItem(TRAINER_STATE_KEY)) persistSession()
-      } catch {
-        // Stav zůstane funkční pouze v paměti.
-      }
+      persistSession()
     }
 
     sessionReady = true
@@ -261,7 +337,10 @@
 
 {#if sessionReady}
 <div class="app-shell">
-  <AppHeader progress={traversalProgress} />
+  <AppHeader
+    progress={headerProgress}
+    progressLabel={mode === 'journey' ? 'Kapitola' : 'Pořadí karty'}
+  />
 
   <main class="trainer">
     <div class="trainer-mode-switch" role="group" aria-label="Režim aplikace">
@@ -281,36 +360,43 @@
       >
         Učení
       </button>
+      <button
+        type="button"
+        class:active={mode === 'journey'}
+        aria-pressed={mode === 'journey'}
+        onclick={() => updateMode('journey')}
+      >
+        Cesta Blázna
+      </button>
     </div>
 
     <IosInstallHint />
 
-    <section class="study-progress" aria-labelledby="study-progress-title">
-      <header>
-        <h2 id="study-progress-title">Studijní pokrok</h2>
-        <button type="button" class="reset-progress" onclick={confirmProgressReset}>
-          Resetovat
-        </button>
-      </header>
-      <dl>
-        <div>
-          <dt>Celkem</dt>
-          <dd>{studySummary.total}</dd>
-        </div>
-        <div>
-          <dt>Naučené</dt>
-          <dd>{studySummary.known}</dd>
-        </div>
-        <div>
-          <dt>Procvičit</dt>
-          <dd>{studySummary.practice}</dd>
-        </div>
-        <div>
-          <dt>Zbývá</dt>
-          <dd>{studySummary.remaining}</dd>
-        </div>
-      </dl>
-    </section>
+    {#if mode === 'journey'}
+      {#key journeyChapterIndex}
+        <FoolsJourney
+          chapter={currentJourneyChapter}
+          card={currentJourneyCard}
+          index={journeyChapterIndex}
+          chapters={foolsJourney}
+          cards={journeyCards}
+          highestIndex={journeyHighestChapterIndex}
+          onSelect={selectJourneyChapter}
+          onPrevious={showPreviousJourneyChapter}
+          onNext={showNextJourneyChapter}
+          onStartOver={() => selectJourneyChapter(0)}
+          onExit={exitJourney}
+        />
+      {/key}
+    {:else}
+      {#if mode === 'study'}
+        <StudyProgressPanel
+          summary={studySummary}
+          expanded={studyProgressExpanded}
+          onToggle={toggleStudyProgress}
+          onReset={confirmProgressReset}
+        />
+      {/if}
 
     <fieldset class="mode-controls">
       <legend class="visually-hidden">Nastavení pořadí a orientace karet</legend>
@@ -430,6 +516,7 @@
           ? 'Klepnutím otočíte · přejetím nebo šipkami listujete'
           : 'Význam odhalíte tlačítkem · přejetím nebo šipkami listujete'}
       </p>
+    {/if}
     {/if}
   </main>
 </div>

@@ -1,4 +1,4 @@
-# Tarot Trainer 0.2.3
+# Tarot Trainer 0.3.0
 
 Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smith. Funguje bez backendu, účtu a připojení po prvním úspěšném načtení. Používá Svelte 5, TypeScript, Vite, čisté CSS, `vite-plugin-pwa` a malé testy nad vestavěným Node test runnerem a Playwrightem.
 
@@ -8,6 +8,8 @@ Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smi
 - Volitelný Reversed režim: každá nově rozdaná karta má nezávisle 50% šanci na obrácenou polohu; obrázek se otočí a výklad zůstane čitelný.
 - Plynulé 3D otočení, navigaci tlačítky, vodorovným swipem a klávesami se zohledněním `prefers-reduced-motion`.
 - Režim Učení s odhalením významu a volbou „Umím“ nebo „Procvičit“.
+- Režim Cesta Blázna: souvislý výukový příběh všech 22 Velkých arkán se symbolikou, lekcemi a klasickým významem karty.
+- Kompaktní rozbalovací panel studijního pokroku, který se zobrazuje pouze v režimu Učení.
 - Trvalé verzované uložení režimu, aktuální karty, zamíchaného pořadí, rozdaných orientací a pokroku v `localStorage`.
 - Offline provoz, instalovatelný manifest, lokální public-domain ilustrace a potvrzenou aktualizaci service workeru.
 
@@ -16,7 +18,7 @@ Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smi
 ```text
 src/
 ├── components/   malé Svelte komponenty UI a PWA oznámení
-├── data/         všech 78 karet a jejich české výklady
+├── data/         78 karet, české výklady a 22 kapitol Cesty Blázna
 ├── lib/          čistá logika balíčku, studia, persistence a validace
 ├── styles/       globální CSS a designové proměnné
 └── types/        sdílené TypeScript typy
@@ -29,7 +31,7 @@ tests/
 └── *.test.ts     jednotkové testy čisté logiky
 ```
 
-`src/App.svelte` skládá obrazovku a drží lokální stav. `src/components/TarotCard.svelte` pouze vykresluje kartu a její interakce. Pořadí, orientace, studijní priorita a persistence jsou oddělené v `src/lib/`.
+`src/App.svelte` skládá obrazovku a drží lokální stav. `src/components/TarotCard.svelte` vykresluje klasickou kartu, `src/components/FoolsJourney.svelte` příběhovou kapitolu a `src/components/StudyProgressPanel.svelte` kompaktní pokrok. Pořadí, orientace, studijní priorita, validace příběhu a persistence jsou oddělené v `src/lib/`.
 
 ## Spuštění na Fedoře
 
@@ -74,7 +76,7 @@ Aplikace nemá žádné produkční npm závislosti; výsledkem buildu jsou pouz
 
 ## Offline režim a aktualizace
 
-Produkční service worker předem uloží HTML, JavaScript, CSS, manifest, ikony a všech 78 ilustrací. České názvy a významy jsou součástí aplikačního JavaScriptu, takže nevyžadují API ani síť. Aplikace je plně offline po prvním úspěšném načtení a dokončení precache, které oznámí zprávou „Aplikace je připravená offline“.
+Produkční service worker předem uloží HTML, JavaScript, CSS, manifest, ikony a všech 78 ilustrací. České názvy, významy i celý text Cesty Blázna jsou součástí aplikačního JavaScriptu, takže nevyžadují API ani síť. Aplikace je plně offline po prvním úspěšném načtení a dokončení precache, které oznámí zprávou „Aplikace je připravená offline“.
 
 Nový service worker čeká na souhlas uživatele. Po potvrzení aktualizace převezme novou verzi a stránka se načte znovu. Studijní stav je samostatně v `localStorage`, takže výměna cache jej nemaže. Poškozená nebo neznámá verze lokálních dat se bezpečně nahradí výchozím stavem.
 
@@ -93,6 +95,8 @@ npm test
 ```
 
 Validátor kontroluje přesně 78 karet, kanonické pořadí a názvy, členění arkán, unikátní ID a obrázky, neprázdné významy i JPEG rozměry. Původ a právní stav ilustrací popisuje [ATTRIBUTION.md](./ATTRIBUTION.md). Obrázky lze znovu stáhnout a ověřit příkazem `npm run download:cards`.
+
+Příběhový obsah je samostatně v `src/data/foolsJourney.ts` a jeho typ v `src/types/foolsJourney.ts`. Kapitola odkazuje stabilním `cardId` na existující Velkou arkánu a neduplikuje ilustraci ani klasický výklad. Validace vyžaduje přesně 22 kapitol ve správném pořadí, 100–180 slov příběhu, 2–4 skutečné symboly a 3–5 klíčových slov. Přidání dalšího jazyka má zachovat stejná ID a přesunout texty do samostatné typované překladové vrstvy.
 
 Pro budoucí jazyk je vhodné zachovat stabilní ID karet a přidat typovanou překladovou vrstvu oddělenou od ilustrací a logiky. Přidání jiného balíčku vyžaduje vlastní dataset, assety a odpovídající validační profil; nemá se obcházet současná RWS validace.
 

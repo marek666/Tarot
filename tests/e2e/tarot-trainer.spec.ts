@@ -104,12 +104,14 @@ test('studijní relace a pokrok přežijí obnovení stránky', async ({ page })
   await expect(page.locator('.meaning-summary')).toBeVisible()
   await page.locator('.study-actions .practice-button').click()
   await expect(page.locator('.progress')).toHaveText('2/78')
-  await expect(page.locator('.study-progress dd').nth(2)).toHaveText('1')
+  await page.getByRole('button', { name: /Pokrok v učení/ }).click()
+  await expect(page.locator('.study-progress dd').nth(1)).toHaveText('1')
 
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Učení' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Učení', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.locator('.progress')).toHaveText('2/78')
-  await expect(page.locator('.study-progress dd').nth(2)).toHaveText('1')
+  await expect(page.getByRole('button', { name: /Pokrok v učení/ })).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.locator('.study-progress dd').nth(1)).toHaveText('1')
 })
 
 test('aplikace se po prvním načtení obnoví offline včetně ilustrace', async ({ page, context }) => {

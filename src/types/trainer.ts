@@ -1,6 +1,8 @@
 export type CardOrientation = 'upright' | 'reversed'
 
-export type TrainerMode = 'browse' | 'study'
+export type ClassicTrainerMode = 'browse' | 'study'
+
+export type TrainerMode = ClassicTrainerMode | 'journey'
 
 export type StudyRating = 'known' | 'practice'
 
@@ -25,4 +27,20 @@ export interface TrainerStateV1 {
   studyProgress: StudyProgress
 }
 
-export type TrainerState = TrainerStateV1
+export interface TrainerStateV2 {
+  version: 2
+  mode: TrainerMode
+  previousMode: ClassicTrainerMode
+  shuffleEnabled: boolean
+  reversedEnabled: boolean
+  deckOrderIds: string[]
+  currentIndex: number
+  orientations: Array<CardOrientation | null>
+  studyRevealed: boolean
+  studyProgress: StudyProgress
+  studyProgressExpanded: boolean
+  journeyChapterIndex: number
+  journeyHighestChapterIndex: number
+}
+
+export type TrainerState = TrainerStateV2

@@ -190,7 +190,8 @@ test('reload po kontrole service workeru zachová studijní pokrok', async ({ pa
   await page.getByRole('button', { name: 'Učení' }).click()
   await page.getByRole('button', { name: 'Odhalit význam' }).click()
   await page.locator('.study-actions .known-button').click()
-  await expect(page.locator('.study-progress dd').nth(1)).toHaveText('1')
+  await page.getByRole('button', { name: /Pokrok v učení/ }).click()
+  await expect(page.locator('.study-progress dd').nth(0)).toHaveText('1')
 
   await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready
@@ -199,6 +200,6 @@ test('reload po kontrole service workeru zachová studijní pokrok', async ({ pa
   await page.reload()
 
   await expect(page.locator('.progress')).toHaveText('2/78')
-  await expect(page.locator('.study-progress dd').nth(1)).toHaveText('1')
-  await expect(page.getByRole('button', { name: 'Učení' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.study-progress dd').nth(0)).toHaveText('1')
+  await expect(page.getByRole('button', { name: 'Učení', exact: true })).toHaveAttribute('aria-pressed', 'true')
 })

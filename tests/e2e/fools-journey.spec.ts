@@ -1,0 +1,147 @@
+import { expect, test, type Page } from '@playwright/test'
+
+async function openFreshApp(page: Page): Promise<void> {
+  await page.goto('/')
+  await page.evaluate(() => localStorage.clear())
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Tarot Trainer' })).toBeVisible()
+}
+
+test.beforeEach(async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+})
+
+test('panel pokroku je pouze v Učení, je sbalený a zachová data i kartu', async ({ page }) => {
+  await openFreshApp(page)
+  await expect(page.locator('.study-progress')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Učení' }).click()
+
+  const toggle = page.getByRole('button', { name: /Pokrok v učení — 0\/78/ })
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  const before = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot-trainer:state')!).studyProgress)
+  await toggle.focus()
+  await page.keyboard.press('Enter')
+
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.locator('.progress-bar')).toHaveAttribute('aria-valuenow', '0')
+  await expect(page.locator('.progress')).toHaveText('1/78')
+  const after = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot-trainer:state')!).studyProgress)
+  expect(after).toEqual(before)
+
+  await page.keyboard.press('Space')
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  await page.keyboard.press('Enter')
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+
+  await page.reload()
+  await expect(page.getByRole('button', { name: /Pokrok v učení/ })).toHaveAttribute('aria-expanded', 'true')
+  await page.getByRole('button', { name: 'Prohlížení' }).click()
+  await expect(page.locator('.study-progress')).toHaveCount(0)
+})
+
+test('Cesta Blázna umožní navigaci, výběr kapitoly, význam a návrat', async ({ page }) => {
+  await openFreshApp(page)
+  await page.getByRole('button', { name: 'Učení' }).click()
+  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+
+  await expect(page.locator('.progress')).toHaveText('1/22')
+  await expect(page.getByRole('heading', { name: 'První krok' })).toBeVisible()
+  await expect(page.getByText(/moderní výukový způsob/)).toBeVisible()
+  await expect(page.locator('.study-progress')).toHaveCount(0)
+  await expect(page.getByLabel('Shuffle')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Další →' }).click()
+  await expect(page.locator('.progress')).toHaveText('2/22')
+  await expect(page.getByRole('heading', { name: 'Co mám v rukou' })).toBeVisible()
+  await page.getByRole('button', { name: '← Předchozí' }).click()
+  await expect(page.locator('.progress')).toHaveText('1/22')
+  await page.getByRole('button', { name: 'Další →' }).click()
+
+  await page.locator('.chapter-picker > summary').click()
+  await page.getByRole('button', { name: /IX Poustevník/ }).click()
+  await expect(page.locator('.progress')).toHaveText('10/22')
+  await expect(page.locator('figure img')).toHaveAttribute('src', '/cards/major-09-hermit.jpg')
+
+  await page.getByRole('button', { name: 'Klasický význam karty' }).click()
+  await expect(page.getByText('Poustevník — přímá poloha')).toBeVisible()
+  await expect(page.locator('.progress')).toHaveText('10/22')
+
+  await page.getByRole('button', { name: '← Zpět' }).click()
+  await expect(page.getByRole('button', { name: 'Učení', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.progress')).toHaveText('1/78')
+})
+
+test('rozečtená kapitola a nejvyšší postup přežijí reload i přepnutí režimu', async ({ page }) => {
+  await openFreshApp(page)
+  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+  await page.locator('.chapter-picker > summary').click()
+  await page.getByRole('button', { name: /XIV Mírnost/ }).click()
+  await expect(page.locator('.progress')).toHaveText('15/22')
+
+  await page.getByRole('button', { name: 'Prohlížení' }).click()
+  await expect(page.locator('.progress')).toHaveText('1/78')
+  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+  await expect(page.locator('.progress')).toHaveText('15/22')
+
+  await page.reload()
+  await expect(page.locator('.progress')).toHaveText('15/22')
+  await expect(page.getByRole('heading', { name: 'Nová rovnováha' })).toBeVisible()
+  const state = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot-trainer:state')!))
+  expect(state.journeyChapterIndex).toBe(14)
+  expect(state.journeyHighestChapterIndex).toBe(14)
+
+  await page.getByRole('button', { name: 'Od začátku' }).click()
+  await expect(page.locator('.progress')).toHaveText('1/22')
+  await expect(page.getByRole('heading', { name: 'První krok' })).toBeVisible()
+})
+
+test('přímé přepnutí z rozečteného studia přes příběh zachová platnou relaci', async ({ page }) => {
+  await openFreshApp(page)
+  await page.getByRole('button', { name: 'Učení' }).click()
+  await page.getByRole('button', { name: 'Odhalit význam' }).click()
+  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+  await page.getByRole('button', { name: 'Prohlížení' }).click()
+  await page.reload()
+
+  await expect(page.getByRole('button', { name: 'Prohlížení' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.progress')).toHaveText('1/78')
+  const state = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot-trainer:state')!))
+  expect(state.version).toBe(2)
+  expect(state.studyRevealed).toBe(false)
+})
+
+test('Cesta Blázna zůstane dostupná offline', async ({ page, context }) => {
+  await openFreshApp(page)
+  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+  await page.getByRole('button', { name: 'Další →' }).click()
+  await page.evaluate(async () => navigator.serviceWorker.ready)
+  await page.reload()
+
+  await context.setOffline(true)
+  await page.reload()
+  await expect(page.locator('.progress')).toHaveText('2/22')
+  await expect(page.getByRole('heading', { name: 'Co mám v rukou' })).toBeVisible()
+  expect(await page.locator('figure img').evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
+  await context.setOffline(false)
+})
+
+for (const viewport of [
+  { width: 320, height: 720 },
+  { width: 430, height: 932 },
+  { width: 1440, height: 1000 },
+]) {
+  test(`Cesta Blázna se vejde do viewportu ${viewport.width} px`, async ({ page }) => {
+    await page.setViewportSize(viewport)
+    await openFreshApp(page)
+    await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+    const undersized = await page.locator('button:visible').evaluateAll((buttons) =>
+      buttons.filter((button) => {
+        const box = button.getBoundingClientRect()
+        return box.width < 44 || box.height < 44
+      }).map((button) => button.textContent?.trim()),
+    )
+    expect(undersized).toEqual([])
+  })
+}
