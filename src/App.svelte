@@ -593,41 +593,6 @@
   />
 
   <main class="trainer">
-    {#if false}<div class="trainer-mode-switch" role="group" aria-label="Režim aplikace">
-      <button
-        type="button"
-        class:active={mode === 'browse'}
-        aria-pressed={mode === 'browse'}
-        onclick={() => updateMode('browse')}
-      >
-        Prohlížení
-      </button>
-      <button
-        type="button"
-        class:active={mode === 'study'}
-        aria-pressed={mode === 'study'}
-        onclick={() => updateMode('study')}
-      >
-        Učení
-      </button>
-      <button
-        type="button"
-        class:active={mode === 'journey'}
-        aria-pressed={mode === 'journey'}
-        onclick={() => updateMode('journey')}
-      >
-        Cesta Blázna
-      </button>
-      <button
-        type="button"
-        class:active={mode === 'daily'}
-        aria-pressed={mode === 'daily'}
-        onclick={() => updateMode('daily')}
-      >
-        Karta dne
-      </button>
-    </div>{/if}
-
     <IosInstallHint />
 
     {#if mode === 'daily' && dailyCardState}
