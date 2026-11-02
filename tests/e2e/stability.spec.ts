@@ -201,7 +201,7 @@ test('reload po kontrole service workeru zachová studijní pokrok', async ({ pa
 
   await expect(page.locator('.progress')).toHaveText('2/78')
   await expect(page.locator('.study-progress dd').nth(0)).toHaveText('1')
-  await expect(page.getByRole('button', { name: 'Učení', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.desktop-nav button').filter({ hasText: 'Učení' })).toHaveAttribute('aria-pressed', 'true')
 })
 
 async function navigateMode(page: import('@playwright/test').Page, name: string): Promise<void> {
