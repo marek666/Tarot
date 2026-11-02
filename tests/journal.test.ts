@@ -19,7 +19,7 @@ class MemoryStorage {
 test('deník ukládá kartu dne a poznámky, nerozbíjí ostatní klíče',()=>{
   const storage = new MemoryStorage()
   storage.setItem('tarot-trainer:state','unchanged')
-  const entry = journalFromDaily({version:1,localDate:'2026-11-02',cardId:ids[0],orientation:'upright',area:'general'})
+  const entry = journalFromDaily({version:1,localDate:'2026-11-02',cardId:ids[0]!,orientation:'upright',area:'general'})
   let journal = addJournalEntry({version:1, entries:[]},entry)
   journal = updateJournalNote(journal,entry.id,'Moje interpretace')
   assert.equal(writeJournal(storage,journal),true)
@@ -43,7 +43,7 @@ test('uložený spread má tři unikátní odkryté karty a stabilní ID',()=>{
 })
 
 test('import slučuje podle ID a odmítá poškozený JSON',()=>{
-  const entry = journalFromDaily({version:1,localDate:'2026-11-02',cardId:ids[0],orientation:'upright',area:'general'})
+  const entry = journalFromDaily({version:1,localDate:'2026-11-02',cardId:ids[0]!,orientation:'upright',area:'general'})
   const initial = {version:1 as const,entries:[entry]}
   assert.deepEqual(mergeJournal(initial,initial),initial)
   assert.deepEqual(parseJournal(JSON.stringify(initial),ids),initial)
