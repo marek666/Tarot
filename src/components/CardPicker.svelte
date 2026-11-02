@@ -17,6 +17,7 @@
     wide = false,
     showStudyFilters = false,
     studyProgress = null,
+    favoriteCardIds = [],
   }: {
     cards: readonly TarotCard[]
     currentCardId: string
@@ -26,6 +27,7 @@
     wide?: boolean
     showStudyFilters?: boolean
     studyProgress?: StudyProgress | null
+    favoriteCardIds?: readonly string[]
   } = $props()
 
   let dialog = $state<HTMLDialogElement>()
@@ -34,13 +36,15 @@
   let query = $state('')
   let group = $state<CardGroupFilter>('all')
   let study = $state<CardStudyFilter>('all')
+  let favoritesOnly = $state(false)
 
-  const filteredCards = $derived(filterPickerCards(cards, { query, group, study }, studyProgress))
+  const filteredCards = $derived(filterPickerCards(cards, { query, group, study }, studyProgress).filter((card) => !favoritesOnly || favoriteCardIds.includes(card.id)))
 
   function openPicker(): void {
     query = ''
     group = 'all'
     study = 'all'
+    favoritesOnly = false
     dialog?.showModal()
     document.documentElement.classList.add('card-picker-open')
     window.requestAnimationFrame(() => searchInput?.focus())
@@ -153,6 +157,8 @@
       {/if}
     </div>
 
+    <label class="favorite-filter"><input type="checkbox" bind:checked={favoritesOnly} /> Pouze oblíbené ({favoriteCardIds.length})</label>
+
     <p class="result-count" aria-live="polite">{filteredCards.length} {filteredCards.length === 1 ? 'karta' : 'karet'}</p>
   </div>
 
@@ -175,7 +181,7 @@
               <img src={card.image} alt="" width="64" height="111" loading="lazy" />
               <span class="card-position">{traditionalIndex + 1}</span>
               <span class="card-names">
-                <strong>{card.nameCs}</strong>
+                <strong>{card.nameCs}{favoriteCardIds.includes(card.id) ? ' ★' : ''}</strong>
                 <small>{card.nameEn}</small>
               </span>
               {#if card.id === currentCardId}<span class="current-label">Aktuální</span>{/if}
@@ -331,6 +337,17 @@
     padding: 0.55rem 2rem 0.55rem 0.65rem;
     font-size: 0.74rem;
   }
+
+  .favorite-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 44px;
+    color: var(--gold);
+    font-size: 0.78rem;
+  }
+
+  .favorite-filter input { width: 18px; height: 18px; accent-color: var(--gold); }
 
   .result-count {
     margin: 0.55rem 0 0;
