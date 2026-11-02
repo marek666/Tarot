@@ -75,8 +75,13 @@ export function journalFromDaily(daily: DailyCardState): JournalEntry {
 }
 export function journalFromSpread(spread: ThreeCardSpreadState): JournalEntry | null {
   if (spread.cards.length !== 3 || spread.cards.some(c => !c.revealed || !c.interpretationRevealed)) return null
+  // Stabilní ID zabrání opakovanému uložení totožného výkladu.
+  // Stejný los/otázka/rozložení znamená jeden historický záznam.
+  const fingerprint = JSON.stringify([spread.layoutId,spread.area,spread.question,spread.cards.map(c=>[c.cardId,c.orientation])])
+  let hash = 2166136261
+  for (let i = 0; i < fingerprint.length; i++) hash = Math.imul(hash ^ fingerprint.charCodeAt(i),16777619)
   return {
-    id: crypto.randomUUID(), type: 'spread', createdAt: new Date().toISOString(), note: '',
+    id: 'spread:' + (hash >>> 0).toString(16), type: 'spread', createdAt: new Date().toISOString(), note: '',
     area: spread.area, layoutId: spread.layoutId, question: spread.question,
     cards: spread.cards.map(c => ({ ...c })) as [SpreadCardState, SpreadCardState, SpreadCardState],
   }
