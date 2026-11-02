@@ -5,6 +5,7 @@
   import DailyCard from './components/DailyCard.svelte'
   import FoolsJourney from './components/FoolsJourney.svelte'
   import IosInstallHint from './components/IosInstallHint.svelte'
+  import ReadingJournal from './components/ReadingJournal.svelte'
   import PwaUpdatePrompt from './components/PwaUpdatePrompt.svelte'
   import StudyProgressPanel from './components/StudyProgressPanel.svelte'
   import TarotCard from './components/TarotCard.svelte'
@@ -25,6 +26,20 @@
   } from './lib/dailyCard.ts'
   import { getDailyInterpretation } from './lib/dailyInterpretation.ts'
   import { toggleFavoriteCard } from './lib/favorites.ts'
+  import {
+    JOURNAL_KEY,
+    JOURNAL_LIMIT,
+    addJournalEntry,
+    deleteJournalEntry,
+    journalFromDaily,
+    journalFromSpread,
+    mergeJournal,
+    parseJournal,
+    readJournal,
+    updateJournalNote,
+    writeJournal,
+  } from './lib/journal.ts'
+  import type { JournalState } from './types/journal.ts'
   import {
     clearSpreadCards,
     createDefaultSpreadState,
@@ -96,7 +111,10 @@
   let journeyChapterIndex = $state(0)
   let journeyHighestChapterIndex = $state(0)
   let dailyCardState = $state<DailyCardState | null>(null)
-  let dailyView = $state<'daily' | 'spread'>('daily')
+  let dailyView = $state<'daily' | 'spread' | 'journal'>('daily')
+  let journalState = $state<JournalState>({ version: 2, entries: [] })
+  let journalError = $state('')
+  let journalNoteDirty = $state(false)
   let spreadState = $state<ThreeCardSpreadState>(createDefaultSpreadState())
   let sessionReady = $state(false)
   let storageReady = false
@@ -110,7 +128,7 @@
   const headerProgress = $derived(
     mode === 'journey'
       ? `${journeyChapterIndex + 1}/${foolsJourney.length}`
-      : mode === 'daily' ? dailyView === 'daily' ? 'Dnes' : '3 karty' : traversalProgress,
+      : mode === 'daily' ? dailyView === 'daily' ? 'Dnes' : dailyView === 'spread' ? '3 karty' : 'Deník' : traversalProgress,
   )
   const currentJourneyChapter = $derived(foolsJourney[journeyChapterIndex]!)
   const currentJourneyCard = $derived(journeyCards[journeyChapterIndex]!)
@@ -243,6 +261,21 @@
     persistSession()
   }
 
+  function confirmJournalExit(): boolean {
+    return !journalNoteDirty || window.confirm('Poznámka není uložená. Opravdu ji chcete zahodit?')
+  }
+
+  function requestModeChange(nextMode: TrainerMode): void {
+    if (mode === 'daily' && dailyView === 'journal' && nextMode !== 'daily' && !confirmJournalExit()) return
+    updateMode(nextMode)
+  }
+
+  function selectDailyView(nextView: 'daily' | 'spread' | 'journal'): void {
+    if (dailyView === nextView) return
+    if (dailyView === 'journal' && !confirmJournalExit()) return
+    dailyView = nextView
+  }
+
   function exitJourney(): void {
     if (mode !== 'journey') return
     mode = previousMode
@@ -290,6 +323,63 @@
   function updateDailyArea(area: DailyArea): void {
     if (!dailyCardState || dailyCardState.area === area) return
     dailyCardState = changeDailyArea(browserStorage, dailyCardState, area)
+  }
+
+  function persistJournal(next: JournalState): boolean {
+    if (!writeJournal(browserStorage, next)) { journalError = 'Uložení selhalo. Zkontrolujte místo a oprávnění úložiště.'; return false }
+    journalState = next
+    journalError = ''
+    return true
+  }
+
+  function saveDailyToJournal(): void {
+    if (!dailyCardState) return
+    const entry = journalFromDaily(dailyCardState)
+    const found = journalState.entries.find(e => e.id === entry.id)
+    if (found && !window.confirm('Karta dne už je uložená. Aktualizovat její uloženou podobu a zachovat poznámku?')) return
+    if (!found && journalState.entries.length >= JOURNAL_LIMIT) { journalError = 'Deník je plný (100 záznamů).'; return }
+    persistJournal(addJournalEntry(journalState, { ...entry, note: found?.note ?? '' }))
+  }
+
+  function saveSpreadToJournal(): void {
+    const entry = journalFromSpread(spreadState)
+    if (!entry) return
+    const previous = journalState.entries.find(e => e.id === entry.id)
+    if (previous) { journalError = 'Tento výklad už je v deníku.'; return }
+    if (journalState.entries.length >= JOURNAL_LIMIT) { journalError = 'Deník je plný (100 záznamů).'; return }
+    persistJournal(addJournalEntry(journalState, entry))
+  }
+
+  function saveJournalNote(id: string, note: string): boolean {
+    return persistJournal(updateJournalNote(journalState, id, note))
+  }
+
+  function removeJournalEntry(id: string): boolean {
+    return persistJournal(deleteJournalEntry(journalState, id))
+  }
+
+  function exportJournal(): void {
+    const blob = new Blob([JSON.stringify(journalState, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'tarot-trainer-denik.json'
+    document.body.append(a)
+    a.click()
+    a.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 0)
+  }
+
+  function importJournal(raw: string): void {
+    const imported = raw.length <= 1024 * 1024 ? parseJournal(raw, deckIds) : null
+    if (!imported) { journalError = 'Soubor není platným deníkem Tarot Trainer.'; return }
+    const result = mergeJournal(journalState, imported)
+    if (result.overflow) {
+      journalError = 'Import překračuje limit 100 záznamů. Nejdřív některé záznamy exportujte a odstraňte.'
+      return
+    }
+    if (!window.confirm(`Soubor obsahuje ${imported.entries.length} záznamů. Importovat ${result.added} nových? ${result.duplicates} existujících záznamů zůstane beze změny.`)) return
+    persistJournal(result.state)
   }
 
   function persistSpread(): void {
@@ -488,6 +578,15 @@
     journeyHighestChapterIndex = restored.journeyHighestChapterIndex
     refreshDailyCard()
     spreadState = loadSpreadState(browserStorage, deckIds, reversedEnabled)
+    journalState = readJournal(browserStorage, deckIds)
+    try {
+      const storedJournal = browserStorage?.getItem(JOURNAL_KEY)
+      if (storedJournal && !parseJournal(storedJournal, deckIds)) {
+        journalError = 'Uložený deník je poškozený nebo z nekompatibilní verze. Data nebyla přepsána.'
+      }
+    } catch {
+      journalError = 'Místní úložiště není dostupné. Deník nyní nelze trvale ukládat.'
+    }
     storageReady = true
 
     if (!hadStoredState) {
@@ -528,59 +627,26 @@
   class:daily-mode={mode === 'daily'}
 >
   <AppHeader
+    mode={mode}
+    onModeChange={requestModeChange}
     progress={headerProgress}
     progressLabel={mode === 'journey'
       ? 'Kapitola'
-      : mode === 'daily' ? dailyView === 'daily' ? 'Karta dne' : 'Tříkaretní výklad' : 'Pořadí karty'}
+      : mode === 'daily' ? dailyView === 'daily' ? 'Karta dne' : dailyView === 'spread' ? 'Tříkaretní výklad' : 'Deník' : 'Pořadí karty'}
   />
 
   <main class="trainer">
-    <div class="trainer-mode-switch" role="group" aria-label="Režim aplikace">
-      <button
-        type="button"
-        class:active={mode === 'browse'}
-        aria-pressed={mode === 'browse'}
-        onclick={() => updateMode('browse')}
-      >
-        Prohlížení
-      </button>
-      <button
-        type="button"
-        class:active={mode === 'study'}
-        aria-pressed={mode === 'study'}
-        onclick={() => updateMode('study')}
-      >
-        Učení
-      </button>
-      <button
-        type="button"
-        class:active={mode === 'journey'}
-        aria-pressed={mode === 'journey'}
-        onclick={() => updateMode('journey')}
-      >
-        Cesta Blázna
-      </button>
-      <button
-        type="button"
-        class:active={mode === 'daily'}
-        aria-pressed={mode === 'daily'}
-        onclick={() => updateMode('daily')}
-      >
-        Karta dne
-      </button>
-    </div>
-
     <IosInstallHint />
 
     {#if mode === 'daily' && dailyCardState}
-      <div class="daily-subtabs" role="tablist" aria-label="Denní a tříkaretní výklady">
+      <div class="daily-subtabs" role="tablist" aria-label="Výklady a deník">
         <button
           type="button"
           role="tab"
           aria-label="Podzáložka Karta dne"
           aria-selected={dailyView === 'daily'}
           class:active={dailyView === 'daily'}
-          onclick={() => dailyView = 'daily'}
+          onclick={() => selectDailyView('daily')}
         >
           Karta dne
         </button>
@@ -590,11 +656,14 @@
           aria-label="Podzáložka Tři karty"
           aria-selected={dailyView === 'spread'}
           class:active={dailyView === 'spread'}
-          onclick={() => dailyView = 'spread'}
+          onclick={() => selectDailyView('spread')}
         >
           Tři karty
         </button>
+        <button type="button" role="tab" aria-label="Podzáložka Deník" aria-selected={dailyView === 'journal'} class:active={dailyView === 'journal'} onclick={() => selectDailyView('journal')}>Deník</button>
       </div>
+
+      {#if journalError}<p class="journal-error" role="alert">{journalError}</p>{/if}
 
       {#if dailyView === 'daily'}
         <DailyCard
@@ -606,7 +675,8 @@
           onAreaChange={updateDailyArea}
           onToggleFavorite={() => toggleFavorite(currentDailyCard.id)}
         />
-      {:else}
+        <button type="button" class="save-reading-button" onclick={saveDailyToJournal}>Uložit Kartu dne do deníku</button>
+      {:else if dailyView === 'spread'}
         <ThreeCardSpread
           state={spreadState}
           cards={spreadCards}
@@ -618,6 +688,19 @@
           onRevealAll={revealAllSpread}
           onRevealInterpretation={showSpreadInterpretation}
           onNewSpread={startNewSpread}
+        />
+        {#if spreadState.cards.length === 3 && spreadState.cards.every(c => c.revealed && c.interpretationRevealed)}
+          <button type="button" class="save-reading-button" onclick={saveSpreadToJournal}>Uložit výklad do deníku</button>
+        {/if}
+      {:else}
+        <ReadingJournal
+          journal={journalState}
+          cards={tarotDeck}
+          onNote={saveJournalNote}
+          onDelete={removeJournalEntry}
+          onExport={exportJournal}
+          onImport={importJournal}
+          onDirtyChange={(dirty) => journalNoteDirty = dirty}
         />
       {/if}
     {:else if mode === 'journey'}
@@ -648,55 +731,54 @@
         />
       {/if}
 
-      <CardPicker
-        cards={tarotDeck}
-        currentCardId={currentCard.id}
-        onSelect={selectCard}
-        showStudyFilters={mode === 'study'}
-        studyProgress={mode === 'study' ? studyProgress : null}
-        favoriteCardIds={favoriteCardIds}
-      />
-
-    <fieldset class="mode-controls">
-      <legend class="visually-hidden">Nastavení pořadí a orientace karet</legend>
-
-      <label class:active={shuffleEnabled} class="mode-toggle">
-        <span class="mode-copy">
-          <strong>Shuffle</strong>
-          <small>{shuffleEnabled ? 'Zamícháno' : 'Tradiční pořadí'}</small>
-        </span>
-        <input
-          type="checkbox"
-          checked={shuffleEnabled}
-          onchange={(event) => updateShuffle(event.currentTarget.checked)}
+      <div class="card-toolbar">
+        <CardPicker
+          cards={tarotDeck}
+          currentCardId={currentCard.id}
+          onSelect={selectCard}
+          showStudyFilters={mode === 'study'}
+          studyProgress={mode === 'study' ? studyProgress : null}
+          favoriteCardIds={favoriteCardIds}
         />
-        <span class="switch" aria-hidden="true"></span>
-      </label>
 
-      <label class:active={reversedEnabled} class="mode-toggle">
-        <span class="mode-copy">
-          <strong>Reversed</strong>
-          <small>{reversedEnabled ? '50 % obráceně' : 'Jen přímé karty'}</small>
-        </span>
-        <input
-          type="checkbox"
-          checked={reversedEnabled}
-          onchange={(event) => updateReversed(event.currentTarget.checked)}
-        />
-        <span class="switch" aria-hidden="true"></span>
-      </label>
-    </fieldset>
+        <details class="compact-settings">
+          <summary aria-label={`Nastavení karet${shuffleEnabled ? ', Shuffle aktivní' : ''}${reversedEnabled ? ', Reversed aktivní' : ''}`}>
+            <span>Nastavení</span>
+            {#if shuffleEnabled || reversedEnabled}
+              <span class="settings-state" aria-hidden="true">{shuffleEnabled ? 'S' : ''}{reversedEnabled ? 'R' : ''}</span>
+            {/if}
+          </summary>
+          <fieldset class="mode-controls">
+            <legend class="visually-hidden">Nastavení pořadí a orientace karet</legend>
 
-    <button
-      type="button"
-      class="favorite-toggle"
-      aria-pressed={favoriteCardIds.includes(currentCard.id)}
-      aria-label={favoriteCardIds.includes(currentCard.id) ? `Odebrat ${currentCard.nameCs} z oblíbených` : `Přidat ${currentCard.nameCs} do oblíbených`}
-      onclick={() => toggleFavorite(currentCard.id)}
-    >
-      <span aria-hidden="true">{favoriteCardIds.includes(currentCard.id) ? '★' : '☆'}</span>
-      {favoriteCardIds.includes(currentCard.id) ? 'V oblíbených' : 'Do oblíbených'}
-    </button>
+            <label class:active={shuffleEnabled} class="mode-toggle">
+              <span class="mode-copy">
+                <strong>Shuffle</strong>
+                <small>{shuffleEnabled ? 'Zamícháno' : 'Tradiční pořadí'}</small>
+              </span>
+              <input
+                type="checkbox"
+                checked={shuffleEnabled}
+                onchange={(event) => updateShuffle(event.currentTarget.checked)}
+              />
+              <span class="switch" aria-hidden="true"></span>
+            </label>
+
+            <label class:active={reversedEnabled} class="mode-toggle">
+              <span class="mode-copy">
+                <strong>Reversed</strong>
+                <small>{reversedEnabled ? '50 % obráceně' : 'Jen přímé karty'}</small>
+              </span>
+              <input
+                type="checkbox"
+                checked={reversedEnabled}
+                onchange={(event) => updateReversed(event.currentTarget.checked)}
+              />
+              <span class="switch" aria-hidden="true"></span>
+            </label>
+          </fieldset>
+        </details>
+      </div>
 
     <div class="card-context" aria-live="polite">
       <p>{groupLabel}</p>
@@ -710,6 +792,8 @@
         onNavigate={navigateBySwipe}
         studyMode={mode === 'study'}
         revealed={studyRevealed}
+        favorite={favoriteCardIds.includes(currentCard.id)}
+        onToggleFavorite={() => toggleFavorite(currentCard.id)}
       />
     {/key}
 

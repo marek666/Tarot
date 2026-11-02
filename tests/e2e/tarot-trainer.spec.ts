@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { navigateMode, setCardSetting } from './helpers.ts'
 
 const viewports = [
   { name: '320 px', width: 320, height: 720 },
@@ -49,7 +50,7 @@ test('obrácená ilustrace po klepnutí vždy ukáže obrácený význam', async
   await page.setViewportSize({ width: 390, height: 844 })
   await openFreshApp(page)
 
-  await page.getByLabel('Reversed').check()
+  await setCardSetting(page, 'Reversed', true)
   const card = page.locator('.tarot-card')
   await expect(card).toHaveAttribute('data-orientation', 'reversed')
   await expect(card.locator('img.reversed')).toBeVisible()
@@ -66,7 +67,6 @@ test('obrácená ilustrace po klepnutí vždy ukáže obrácený význam', async
   )
   expect(overflow).toBeLessThanOrEqual(1)
 })
-
 test('dotykové přejetí listuje bez náhodného otočení', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await openFreshApp(page)
@@ -99,7 +99,7 @@ test('studijní relace a pokrok přežijí obnovení stránky', async ({ page })
   await page.setViewportSize({ width: 390, height: 844 })
   await openFreshApp(page)
 
-  await page.getByRole('button', { name: 'Učení' }).click()
+  await navigateMode(page, 'Učení')
   await page.getByRole('button', { name: 'Odhalit význam' }).click()
   await expect(page.locator('.meaning-summary')).toBeVisible()
   await page.locator('.study-actions .practice-button').click()
@@ -108,7 +108,7 @@ test('studijní relace a pokrok přežijí obnovení stránky', async ({ page })
   await expect(page.locator('.study-progress dd').nth(1)).toHaveText('1')
 
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Učení', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.desktop-nav button').filter({ hasText: 'Učení' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.locator('.progress')).toHaveText('2/78')
   await expect(page.getByRole('button', { name: /Pokrok v učení/ })).toHaveAttribute('aria-expanded', 'true')
   await expect(page.locator('.study-progress dd').nth(1)).toHaveText('1')

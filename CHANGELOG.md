@@ -2,6 +2,28 @@
 
 Všechny podstatné změny projektu jsou evidovány v tomto souboru.
 
+## 0.4.1 — 2026-11-02
+
+### Přidáno
+
+- Pod přejmenovanou sekcí Výklady je nová záložka Deník pro vědomé uložení Karty dne i dokončených tříkaretních výkladů.
+- Deník používá samostatný verzovaný klíč `tarot-trainer:journal` ve schématu v2 s migrací z rozpracovaného v1, řadí záznamy od nejnovějších a nabízí filtry, čitelné historické detaily, vlastní poznámky, potvrzené odstranění a limit 100 záznamů s včasným upozorněním.
+- JSON export a validovaný slučovací import bez přepisování existujících záznamů, tichého ořezávání nebo zásahu do hlavní, denní či tříkaretní relace.
+- Regresní unit a Playwright testy persistence, migrace, duplicit, poznámek, importu/exportu, offline provozu, klávesnice a viewportů 320–1920 px.
+
+### Změněno
+
+- Hlavní režimy jsou na desktopu přímo v kompaktní hlavičce; na mobilu je nahrazuje přístupný modalní hamburger s návratem focusu, Escape a zavřením přes backdrop.
+- CardPicker a sbalitelné nastavení Shuffle/Reversed tvoří kompaktní lištu, aktivní nastavení zůstává viditelné i po sbalení a oblíbená hvězda je u názvu karty.
+- Schéma rozpracovaného tříkaretního výkladu bylo povýšeno na v2. Každý nový los dostává uložené 128bitové ID relace a čas vzniku; stav v1 se automaticky migruje bez změny karet, orientací nebo odhalení.
+
+### Opraveno
+
+- Dvě nezávislá vyložení stejných karet už nekolidují v deníku, zatímco opakované uložení stejné relace nevytvoří duplicitu.
+- Neuloženou poznámku nelze tiše ztratit při návratu, přepnutí podzáložky, změně režimu ani zavření stránky.
+- Import nad limitem se celý odmítne, poškozená lokální data se nepřepíší a chyby nedostupného či zaplněného úložiště se zobrazí bez pádu aplikace.
+- Obrácené ilustrace a úplné pozicové i společné interpretace se správně vykreslují také v historickém detailu.
+
 ## 0.4.0 — 2026-11-02
 
 ### Přidáno

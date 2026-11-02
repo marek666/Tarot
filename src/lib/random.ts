@@ -29,3 +29,18 @@ export function sampleRandomIndex(
     if (value < rejectionLimit) return value % length
   }
 }
+
+/** 128bitové lokální ID; stabilitu zajišťuje jeho uložení spolu s relací. */
+export function createUniqueId(
+  prefix: string,
+  randomUint32: RandomUint32Source = secureRandomUint32,
+): string {
+  const randomPart = Array.from({ length: 4 }, () => {
+    const value = randomUint32()
+    if (!Number.isInteger(value) || value < 0 || value >= UINT32_RANGE) {
+      throw new RangeError('Zdroj náhody musí vracet celé nezáporné 32bitové číslo.')
+    }
+    return value.toString(16).padStart(8, '0')
+  }).join('')
+  return `${prefix}:${randomPart}`
+}

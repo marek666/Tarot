@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { navigateMode, setCardSetting } from './helpers.ts'
 
 async function openFreshApp(page: Page): Promise<void> {
   await page.goto('/')
@@ -6,9 +7,8 @@ async function openFreshApp(page: Page): Promise<void> {
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Tarot Trainer' })).toBeVisible()
 }
-
 async function openSpread(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Karta dne', exact: true }).click()
+  await navigateMode(page, 'Karta dne')
   await page.getByRole('tab', { name: 'Podzáložka Tři karty' }).click()
   await expect(page.getByRole('heading', { name: 'Tři pohledy na jedno téma' })).toBeVisible()
 }
@@ -165,9 +165,9 @@ test('rychlé tapy a přechod mezi režimy nepřelosují karty ani hlavní balí
   await expect(page.locator('.spread-card').first()).toHaveAttribute('data-revealed', 'true')
   const spreadBefore = await storedSpread(page)
 
-  await page.getByRole('button', { name: 'Prohlížení', exact: true }).click()
-  await page.getByLabel('Reversed').check()
-  await page.getByRole('button', { name: 'Karta dne', exact: true }).click()
+  await navigateMode(page, 'Prohlížení')
+  await setCardSetting(page, 'Reversed', true)
+  await navigateMode(page, 'Karta dne')
   await page.getByRole('tab', { name: 'Podzáložka Tři karty' }).click()
   const idsAfter = await page.locator('.spread-card').evaluateAll((cards) => cards.map((card) => card.getAttribute('data-card-id')))
   expect(idsAfter).toEqual(idsBefore)

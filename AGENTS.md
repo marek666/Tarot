@@ -12,6 +12,7 @@ Tarot Trainer je minimalistická mobilní PWA pro učení tarotových karet. Zac
 - `src/lib/trainerState.ts` vlastní verzované schéma `localStorage`; migrace nesmí potichu ztratit platný pokrok.
 - `src/lib/dailyCard.ts` vlastní oddělený verzovaný denní los; nesmí měnit hlavní balíček, studijní data ani Cestu Blázna.
 - `src/lib/spreadState.ts` vlastní samostatný verzovaný tříkaretní výklad; interpretace pozic a celku patří do `src/lib/spreadInterpretation.ts`.
+- `src/lib/journal.ts` vlastní samostatné schéma deníku, jeho validaci a export/import; UI deníku patří do `src/components/ReadingJournal.svelte`.
 - `src/components/CardPicker.svelte` je společný modalní výběr karet a kapitol; čisté vyhledávání a filtrování patří do `src/lib/cardPicker.ts`.
 - `src/styles/` obsahuje globální CSS a designové proměnné.
 - `src/types/` obsahuje sdílené TypeScript typy.
@@ -33,6 +34,8 @@ Tarot Trainer je minimalistická mobilní PWA pro učení tarotových karet. Zac
 - Cesta Blázna používá pouze 22 Velkých arkán v pevném pořadí, nereaguje na Shuffle ani Reversed a nesmí duplikovat obrázky nebo klasická kartová data.
 - Karta dne odkazuje na stabilní ID, drží kartu i orientaci po celý místní kalendářní den a tematická oblast nikdy nespouští nový los.
 - Tříkaretní výklad používá tři unikátní stabilní ID, samostatně uložené orientace a stav odhalení. Nesmí čerpat z pořadí hlavního balíčku ani měnit `tarot-trainer:state` či `tarot-trainer:daily-card`.
+- Jeden tříkaretní los má stabilní náhodné ID relace; opakované uložení stejné relace nesmí vytvořit duplicitu a nezávislé losy se stejnými kartami musí zůstat rozlišitelné.
+- Deník je nezávislý v `tarot-trainer:journal`. Import nesmí přepsat existující ID, tiše oříznout záznamy nad limit ani měnit aktivní relaci; uživatelské poznámky vždy vykresluj jako text, nikdy jako HTML.
 - Nepřidávej balíček kvůli drobné funkci, kterou lze jasně napsat několika řádky. Výjimkou jsou cílené vývojové nástroje, například Playwright pro E2E ověření.
 
 ## Tarotová data a PWA

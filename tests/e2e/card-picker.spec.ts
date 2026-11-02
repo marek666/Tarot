@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { navigateMode, setCardSetting } from './helpers.ts'
 
 const stateKey = 'tarot-trainer:state'
 
@@ -23,7 +24,6 @@ async function selectCard(page: Page, cardId: string): Promise<void> {
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
 })
-
 test('Prohlížení vybere kartu 65 a zachová ji po reloadu', async ({ page }) => {
   await openFreshApp(page)
   await selectCard(page, 'pentacles-01')
@@ -38,7 +38,7 @@ test('Prohlížení vybere kartu 65 a zachová ji po reloadu', async ({ page }) 
 
 test('Učení vybere kartu 40 bez změny studijního pokroku', async ({ page }) => {
   await openFreshApp(page)
-  await page.getByRole('button', { name: 'Učení', exact: true }).click()
+  await navigateMode(page, 'Učení')
   const before = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).studyProgress, stateKey)
   await selectCard(page, 'cups-04')
   const after = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).studyProgress, stateKey)
@@ -51,12 +51,12 @@ test('Učení vybere kartu 40 bez změny studijního pokroku', async ({ page }) 
 
 test('Cesta Blázna vybere kapitolu 18 bez přepnutí režimu', async ({ page }) => {
   await openFreshApp(page)
-  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+  await navigateMode(page, 'Cesta Blázna')
   await page.getByRole('button', { name: /Vybrat kapitolu/ }).click()
   await page.locator('.picker-card[data-card-id="major-17-star"]').click()
 
   await expect(page.locator('.progress')).toHaveText('18/22')
-  await expect(page.getByRole('button', { name: 'Cesta Blázna' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.desktop-nav button').filter({ hasText: 'Cesta Blázna' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('heading', { name: 'Obnovit důvěru' })).toBeVisible()
   const state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), stateKey)
   expect(state.journeyChapterIndex).toBe(17)
@@ -81,7 +81,7 @@ test('vyhledávání bez diakritiky a filtry arkán i barev fungují', async ({ 
 
 test('studijní filtry zobrazí Umím, Procvičit a Zbývající', async ({ page }) => {
   await openFreshApp(page)
-  await page.getByRole('button', { name: 'Učení', exact: true }).click()
+  await navigateMode(page, 'Učení')
 
   await page.getByRole('button', { name: 'Odhalit význam' }).click()
   await page.getByRole('button', { name: 'Umím' }).click()
@@ -100,14 +100,14 @@ test('studijní filtry zobrazí Umím, Procvičit a Zbývající', async ({ page
 
 test('výběr při Shuffle zachová pořadí a najde kartu v něm', async ({ page }) => {
   await openFreshApp(page)
-  await page.getByLabel('Shuffle').check()
+  await setCardSetting(page, 'Shuffle', true)
   const before = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), stateKey)
   await selectCard(page, 'pentacles-01')
   const after = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), stateKey)
 
   expect(after.deckOrderIds).toEqual(before.deckOrderIds)
   expect(after.currentIndex).toBe(before.deckOrderIds.indexOf('pentacles-01'))
-  await expect(page.getByLabel('Shuffle')).toBeChecked()
+  await expect(page.getByRole('checkbox', { name: /^Shuffle\b/ })).toBeChecked()
   await expect(page.locator('.tarot-card')).toHaveAttribute('data-card-id', 'pentacles-01')
 })
 
@@ -116,11 +116,11 @@ test('výběr při Reversed přidělí orientaci a během flipu zobrazí novou k
     Math.random = () => 0
   })
   await openFreshApp(page)
-  await page.getByLabel('Reversed').check()
+  await setCardSetting(page, 'Reversed', true)
   await page.locator('.card-stage').tap()
   await selectCard(page, 'cups-04')
 
-  await expect(page.getByLabel('Reversed')).toBeChecked()
+  await expect(page.getByRole('checkbox', { name: /^Reversed\b/ })).toBeChecked()
   await expect(page.locator('.tarot-card')).toHaveAttribute('data-card-id', 'cups-04')
   await expect(page.locator('.tarot-card')).toHaveAttribute('data-orientation', 'reversed')
   await expect(page.locator('.card-inner')).not.toHaveClass(/flipped/)

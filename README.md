@@ -1,4 +1,4 @@
-# Tarot Trainer 0.4.0
+# Tarot Trainer 0.4.1
 
 Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smith. Funguje bez backendu, účtu a připojení po prvním úspěšném načtení. Používá Svelte 5, TypeScript, Vite, čisté CSS, `vite-plugin-pwa` a malé testy nad vestavěným Node test runnerem a Playwrightem.
 
@@ -12,6 +12,8 @@ Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smi
 - Karta dne: jeden bezpečně vylosovaný lokální podnět pro každý kalendářní den s uloženou orientací a oblastmi Obecně, Vztahy, Práce a Osobní rozvoj.
 - Tříkaretní výklady v části Karta dne: tři šablony, unikátní bezpečně vylosované karty, volitelný Reversed a výukové odhalování vlastního výkladu před vzorem.
 - Společné čtení tří pozic pomocí transparentních pravidel pro Velká arkána, opakované barvy a obrácené karty, vždy jako podnět k reflexi, ne jistá předpověď.
+- Lokální Deník výkladů pro ukládání Karty dne a dokončených tříkaretních výkladů, vlastní poznámky, filtry, bezpečné odstranění a JSON zálohu/import.
+- Kompaktní režimová navigace v desktopové hlavičce a přístupný mobilní hamburger, který nepřesouvá obsah stránky.
 - Adaptivní čtecí rozhraní Cesty Blázna: jednosloupcový mobil a portrait tablet, vyvážené dva sloupce v landscape a na desktopu a výškově podmíněná sticky ilustrace.
 - Jednotný výběr libovolné karty nebo kapitoly s náhledy, vyhledáváním bez diakritiky a filtry arkán, barev, studijního stavu i oblíbených.
 - Oblíbené karty v Prohlížení, Učení, Cestě Blázna i Kartě dne se ukládají společně a neovlivňují studijní hodnocení.
@@ -37,7 +39,7 @@ tests/
 └── *.test.ts     jednotkové testy čisté logiky
 ```
 
-`src/App.svelte` skládá obrazovku a drží lokální stav. `src/components/TarotCard.svelte` vykresluje klasickou kartu, `src/components/DailyCard.svelte` denní výklad, `src/components/ThreeCardSpread.svelte` tříkaretní výklad, `src/components/CardPicker.svelte` společný přístupný výběr karet, `src/components/FoolsJourney.svelte` příběhovou kapitolu a `src/components/StudyProgressPanel.svelte` kompaktní pokrok. Pořadí, denní i tříkaretní los, interpretace pozic, filtrování pickeru, studijní priorita, validace příběhu a persistence jsou oddělené v `src/lib/`.
+`src/App.svelte` skládá obrazovku a drží lokální stav. `src/components/AppHeader.svelte` obsluhuje kompaktní režimovou navigaci, `src/components/TarotCard.svelte` klasickou kartu, `src/components/DailyCard.svelte` denní výklad, `src/components/ThreeCardSpread.svelte` tříkaretní výklad, `src/components/ReadingJournal.svelte` deník, `src/components/CardPicker.svelte` společný přístupný výběr, `src/components/FoolsJourney.svelte` příběhovou kapitolu a `src/components/StudyProgressPanel.svelte` pokrok. Pořadí, denní i tříkaretní los, interpretace pozic, deník, filtrování pickeru, studijní priorita, validace příběhu a persistence jsou oddělené v `src/lib/`.
 
 ## Spuštění na Fedoře
 
@@ -86,7 +88,9 @@ Produkční service worker předem uloží HTML, JavaScript, CSS, manifest, ikon
 
 Nový service worker čeká na souhlas uživatele. Po potvrzení aktualizace převezme novou verzi a stránka se načte znovu. Studijní stav je samostatně v `localStorage`, takže výměna cache jej nemaže. Poškozená nebo neznámá verze lokálních dat se bezpečně nahradí výchozím stavem.
 
-Hlavní relace a oblíbené používají verzovaný klíč `tarot-trainer:state`. Denní los má oddělený verzovaný klíč `tarot-trainer:daily-card`, aby nikdy neměnil pořadí balíčku, orientace rozdaných karet ani studijní pokrok. Datum se zapisuje podle místního kalendáře ve formátu `YYYY-MM-DD`; po změně místního dne se při otevření nebo návratu do aplikace vytvoří nový los. Jeden rozpracovaný tříkaretní výklad je samostatně ve verzovaném klíči `tarot-trainer:spread`; uchovává šablonu, oblast, otázku, tři ID a orientace i stav odhalení a nijak nemění hlavní ani denní relaci.
+Hlavní relace a oblíbené používají verzovaný klíč `tarot-trainer:state`. Denní los má oddělený verzovaný klíč `tarot-trainer:daily-card`, aby nikdy neměnil pořadí balíčku, orientace rozdaných karet ani studijní pokrok. Datum se zapisuje podle místního kalendáře ve formátu `YYYY-MM-DD`; po změně místního dne se při otevření nebo návratu do aplikace vytvoří nový los. Jeden rozpracovaný tříkaretní výklad je samostatně ve verzovaném klíči `tarot-trainer:spread`; jeho schéma v2 navíc ukládá stabilní náhodné ID a čas jednoho vyložení a automaticky migruje v1. Uchovává šablonu, oblast, otázku, tři ID a orientace i stav odhalení a nijak nemění hlavní ani denní relaci.
+
+Deník používá nezávislé schéma v2 v `tarot-trainer:journal`; zkušební data v1 s krátkým obsahovým hashem se automaticky a bezztrátově migrují na stabilní ID. Uložené záznamy jsou snapshoty stabilních ID, orientací, rozložení a uživatelských poznámek; aktuální interpretační texty se při zobrazení znovu skládají ze zdrojových dat, a proto se mohou po budoucí obsahové aktualizaci změnit. Poznámky zůstávají beze změny. Deník má limit 100 záznamů a nic automaticky nemaže. Před smazáním dat prohlížeče vytvořte zálohu přes **Výklady → Deník → Export JSON**; import záznamy bezpečně slučuje podle ID a nepřepisuje již uložená data.
 
 - Android/Chrome: použijte nabídku **Instalovat aplikaci** nebo **Přidat na plochu**.
 - iPhone/Safari: použijte **Sdílet → Přidat na plochu**. Krátká nápověda se zobrazí pouze v relevantním Safari, lze ji zavřít a po prvním zobrazení se neopakuje.

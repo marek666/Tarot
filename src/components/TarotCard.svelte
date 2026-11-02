@@ -11,12 +11,16 @@
     onNavigate,
     studyMode = false,
     revealed = false,
+    favorite = false,
+    onToggleFavorite,
   }: {
     card: TarotCardData
     orientation: CardOrientation
     onNavigate: (direction: SwipeDirection) => void
     studyMode?: boolean
     revealed?: boolean
+    favorite?: boolean
+    onToggleFavorite: () => void
   } = $props()
 
   const meaning = $derived(getMeaningForOrientation(card, orientation))
@@ -186,8 +190,17 @@
   aria-label={`${card.nameCs}, ${card.nameEn}, ${orientationLabel}`}
 >
   <header class="card-title" aria-live="polite">
-    <h2>{card.nameCs}</h2>
-    <p>{card.nameEn}</p>
+    <div>
+      <h2>{card.nameCs}</h2>
+      <p>{card.nameEn}</p>
+    </div>
+    <button
+      type="button"
+      class="card-favorite"
+      aria-pressed={favorite}
+      aria-label={favorite ? `Odebrat ${card.nameCs} z oblíbených` : `Přidat ${card.nameCs} do oblíbených`}
+      onclick={onToggleFavorite}
+    ><span aria-hidden="true">{favorite ? '★' : '☆'}</span></button>
   </header>
 
   <div
@@ -276,8 +289,13 @@
 
   .card-title {
     min-width: 0;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
     text-align: center;
   }
+
+  .card-title > div { grid-column: 2; min-width: 0; }
 
   .card-title h2 {
     margin: 0;
@@ -296,6 +314,22 @@
     line-height: 1.3;
     text-transform: uppercase;
   }
+
+  .card-favorite {
+    grid-column: 3;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    color: var(--gold);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.25rem;
+  }
+
+  .card-favorite[aria-pressed='true'] { background: rgb(216 184 108 / 12%); }
+  .card-favorite:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 
   .card-stage {
     width: 100%;

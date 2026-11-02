@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { navigateMode, setCardSetting } from './helpers.ts'
 
 async function openFreshApp(page: Page): Promise<void> {
   await page.goto('/')
@@ -29,7 +30,6 @@ async function storedIndex(page: Page): Promise<number> {
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
 })
-
 test('karta 25 zůstane stejná po deseti otočeních', async ({ page }) => {
   await openFreshApp(page)
   await goToPosition(page, 25)
@@ -94,17 +94,17 @@ test('změna Reversed během animace upraví aktuální kartu bez resetu relace'
   const cardId = await page.locator('.tarot-card').getAttribute('data-card-id')
 
   await page.locator('.card-stage').tap()
-  await page.getByLabel('Reversed').check()
+  await setCardSetting(page, 'Reversed', true)
 
   await expect(page.locator('.progress')).toHaveText('6/78')
-  await expect(page.getByLabel('Reversed')).toBeChecked()
+  await expect(page.locator('.compact-settings summary')).toHaveAttribute('aria-label', /Reversed aktivní/)
   await expect(page.locator('.tarot-card')).toHaveAttribute('data-card-id', cardId!)
   await expect(page.locator('.tarot-card')).toHaveAttribute('data-orientation', 'reversed')
   await expect(page.locator('.card-inner')).toHaveClass(/flipped/)
   await expect(page.locator('.meaning-label')).toHaveText('Obrácená poloha')
   expect(await storedIndex(page)).toBe(5)
 
-  await page.getByLabel('Reversed').uncheck()
+  await setCardSetting(page, 'Reversed', false)
 
   await expect(page.locator('.progress')).toHaveText('6/78')
   await expect(page.locator('.tarot-card')).toHaveAttribute('data-card-id', cardId!)
@@ -115,7 +115,7 @@ test('změna Reversed během animace upraví aktuální kartu bez resetu relace'
 
 test('Shuffle rozdá všech 78 unikátních karet před novým kolem', async ({ page }) => {
   await openFreshApp(page)
-  await page.getByLabel('Shuffle').check()
+  await setCardSetting(page, 'Shuffle', true)
   const seen = new Set<string>()
 
   for (let position = 1; position <= 78; position += 1) {
@@ -135,7 +135,7 @@ test('karta 40, její orientace a nastavení se obnoví po reloadu', async ({ pa
     Math.random = () => 0
   })
   await openFreshApp(page)
-  await page.getByLabel('Reversed').check()
+  await setCardSetting(page, 'Reversed', true)
   await goToPosition(page, 40)
   const card = page.locator('.tarot-card')
   const cardId = await card.getAttribute('data-card-id')
@@ -146,7 +146,7 @@ test('karta 40, její orientace a nastavení se obnoví po reloadu', async ({ pa
   await expect(page.locator('.progress')).toHaveText('40/78')
   await expect(page.locator('.tarot-card')).toHaveAttribute('data-card-id', cardId!)
   await expect(page.locator('.tarot-card')).toHaveAttribute('data-orientation', orientation!)
-  await expect(page.getByLabel('Reversed')).toBeChecked()
+  await expect(page.locator('.compact-settings summary')).toHaveAttribute('aria-label', /Reversed aktivní/)
   await expect(page.locator('.card-inner')).not.toHaveClass(/flipped/)
 })
 
@@ -154,13 +154,13 @@ test('rychlé přepnutí flipu, navigace a režimu zachová kartu i pokrok', asy
   await openFreshApp(page)
   await goToPosition(page, 8)
   await page.locator('.card-stage').tap()
-  await page.getByRole('button', { name: 'Učení' }).click()
+  await navigateMode(page, 'Učení')
 
   await expect(page.locator('.progress')).toHaveText('8/78')
   await expect(page.locator('.card-inner')).not.toHaveClass(/flipped/)
   await page.getByRole('button', { name: 'Odhalit význam' }).click()
   await expect(page.locator('.card-inner')).toHaveClass(/flipped/)
-  await page.getByRole('button', { name: 'Prohlížení' }).click()
+  await navigateMode(page, 'Prohlížení')
 
   await expect(page.locator('.progress')).toHaveText('8/78')
   await expect(page.locator('.card-inner')).not.toHaveClass(/flipped/)
@@ -172,7 +172,7 @@ test('návrat na předchozí kartu zachová její identitu a orientaci', async (
     Math.random = () => 0
   })
   await openFreshApp(page)
-  await page.getByLabel('Reversed').check()
+  await setCardSetting(page, 'Reversed', true)
   await nextButton(page).click()
   const secondId = await page.locator('.tarot-card').getAttribute('data-card-id')
   const secondOrientation = await page.locator('.tarot-card').getAttribute('data-orientation')
@@ -187,7 +187,7 @@ test('návrat na předchozí kartu zachová její identitu a orientaci', async (
 
 test('reload po kontrole service workeru zachová studijní pokrok', async ({ page }) => {
   await openFreshApp(page)
-  await page.getByRole('button', { name: 'Učení' }).click()
+  await navigateMode(page, 'Učení')
   await page.getByRole('button', { name: 'Odhalit význam' }).click()
   await page.locator('.study-actions .known-button').click()
   await page.getByRole('button', { name: /Pokrok v učení/ }).click()
@@ -201,5 +201,5 @@ test('reload po kontrole service workeru zachová studijní pokrok', async ({ pa
 
   await expect(page.locator('.progress')).toHaveText('2/78')
   await expect(page.locator('.study-progress dd').nth(0)).toHaveText('1')
-  await expect(page.getByRole('button', { name: 'Učení', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.desktop-nav button').filter({ hasText: 'Učení' })).toHaveAttribute('aria-pressed', 'true')
 })

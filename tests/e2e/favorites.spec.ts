@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { navigateMode } from './helpers.ts'
 
 test('oblíbené fungují napříč režimy a zůstanou uložené po reloadu', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
@@ -14,17 +15,17 @@ test('oblíbené fungují napříč režimy a zůstanou uložené po reloadu', a
   await expect(page.locator('.picker-card')).toHaveCount(1)
   await page.keyboard.press('Escape')
 
-  await page.getByRole('button', { name: 'Učení', exact: true }).click()
+  await navigateMode(page, 'Učení')
   await expect(page.getByRole('button', { name: 'Odebrat Blázen z oblíbených' })).toBeVisible()
-  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+  await navigateMode(page, 'Cesta Blázna')
   await expect(page.getByRole('button', { name: 'Odebrat Blázen z oblíbených' })).toBeVisible()
-  await page.getByRole('button', { name: 'Karta dne' }).click()
+  await navigateMode(page, 'Karta dne')
   const dailyFavorite = page.locator('.daily-favorite')
   await expect(dailyFavorite).toBeVisible()
   const dailyCardId = await page.locator('.daily-card').getAttribute('data-card-id')
   const dailyIsFavorite = dailyCardId === 'major-00-fool'
   await expect(dailyFavorite).toHaveAttribute('aria-pressed', String(dailyIsFavorite))
-  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+  await navigateMode(page, 'Cesta Blázna')
   await page.reload()
   await expect(page.getByRole('button', { name: 'Odebrat Blázen z oblíbených' })).toBeVisible()
 

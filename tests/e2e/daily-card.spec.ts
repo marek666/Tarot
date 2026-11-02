@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { navigateMode, setCardSetting } from './helpers.ts'
 
 async function openFreshApp(page: Page): Promise<void> {
   await page.goto('/')
@@ -6,9 +7,8 @@ async function openFreshApp(page: Page): Promise<void> {
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Tarot Trainer' })).toBeVisible()
 }
-
 async function openDailyCard(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Karta dne', exact: true }).click()
+  await navigateMode(page, 'Karta dne')
   await expect(page.locator('.daily-card')).toBeVisible()
 }
 
@@ -28,7 +28,7 @@ test('Karta dne zůstane stejná po reloadu a změna oblasti ji nepřelosuje', a
   await expect(daily).toHaveAttribute('data-orientation', orientation!)
 
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Karta dne', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.desktop-nav button').filter({ hasText: 'Výklady' })).toHaveAttribute('aria-pressed', 'true')
   await expect(daily).toHaveAttribute('data-card-id', cardId!)
   await expect(daily).toHaveAttribute('data-orientation', orientation!)
   await expect(daily).toHaveAttribute('data-area', 'relationships')
@@ -64,17 +64,17 @@ test('Karta dne nemění hlavní balíček, Shuffle ani studijní pokrok', async
   await openFreshApp(page)
   await page.getByRole('button', { name: 'Vybrat kartu', exact: true }).click()
   await page.locator('.picker-card').nth(24).click()
-  await page.getByLabel('Shuffle').check()
+  await setCardSetting(page, 'Shuffle', true)
 
   const before = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot-trainer:state')!))
   await openDailyCard(page)
   const dailyCardId = await page.locator('.daily-card').getAttribute('data-card-id')
   await page.getByRole('button', { name: 'Práce', exact: true }).click()
-  await page.getByRole('button', { name: 'Učení', exact: true }).click()
-  await page.getByRole('button', { name: 'Karta dne', exact: true }).click()
+  await navigateMode(page, 'Učení')
+  await navigateMode(page, 'Karta dne')
   await expect(page.locator('.daily-card')).toHaveAttribute('data-card-id', dailyCardId!)
   await expect(page.locator('.daily-card')).toHaveAttribute('data-area', 'work')
-  await page.getByRole('button', { name: 'Učení', exact: true }).click()
+  await navigateMode(page, 'Učení')
 
   const after = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot-trainer:state')!))
   expect(after.deckOrderIds).toEqual(before.deckOrderIds)
@@ -102,7 +102,7 @@ test('oblíbená Karta dne se projeví ve společném filtru', async ({ page }) 
   await page.reload()
   await openDailyCard(page)
   await page.getByRole('button', { name: 'Přidat Sedmička pohárů do oblíbených' }).click()
-  await page.getByRole('button', { name: 'Prohlížení', exact: true }).click()
+  await navigateMode(page, 'Prohlížení')
   await page.getByRole('button', { name: 'Vybrat kartu', exact: true }).click()
   await page.getByLabel(/Pouze oblíbené/).check()
 
