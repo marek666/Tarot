@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { navigateMode } from './helpers.ts'
 
 async function openFreshApp(page: Page): Promise<void> {
   await page.goto('/')
@@ -10,7 +11,6 @@ async function openFreshApp(page: Page): Promise<void> {
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
 })
-
 test('panel pokroku je pouze v Učení, je sbalený a zachová data i kartu', async ({ page }) => {
   await openFreshApp(page)
   await expect(page.locator('.study-progress')).toHaveCount(0)
@@ -162,13 +162,3 @@ test('desktop Cesty Blázna využívá široké dvousloupcové rozložení', asy
   await expect(page.getByRole('heading', { name: 'Příběh' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Návaznost' })).toBeVisible()
 })
-
-async function navigateMode(page: import('@playwright/test').Page, name: string): Promise<void> {
-  const desktop = page.locator('.site-header .desktop-nav').getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true })
-  if (await desktop.isVisible()) {
-    await desktop.click()
-  } else {
-    await page.getByRole('button', { name: 'Otevřít menu' }).click()
-    await page.getByRole('dialog', { name: 'Navigace Tarot Trainer' }).getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true }).click()
-  }
-}

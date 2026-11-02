@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { navigateMode, setCardSetting } from './helpers.ts'
 
 async function openFreshApp(page: Page): Promise<void> {
   await page.goto('/')
@@ -6,7 +7,6 @@ async function openFreshApp(page: Page): Promise<void> {
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Tarot Trainer' })).toBeVisible()
 }
-
 async function openDailyCard(page: Page): Promise<void> {
   await navigateMode(page, 'Karta dne')
   await expect(page.locator('.daily-card')).toBeVisible()
@@ -64,7 +64,7 @@ test('Karta dne nemění hlavní balíček, Shuffle ani studijní pokrok', async
   await openFreshApp(page)
   await page.getByRole('button', { name: 'Vybrat kartu', exact: true }).click()
   await page.locator('.picker-card').nth(24).click()
-  await page.getByLabel('Shuffle').check()
+  await setCardSetting(page, 'Shuffle', true)
 
   const before = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot-trainer:state')!))
   await openDailyCard(page)
@@ -172,14 +172,4 @@ for (const viewport of [
       })
     }
   })
-}
-
-async function navigateMode(page: import('@playwright/test').Page, name: string): Promise<void> {
-  const desktop = page.locator('.site-header .desktop-nav').getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true })
-  if (await desktop.isVisible()) {
-    await desktop.click()
-  } else {
-    await page.getByRole('button', { name: 'Otevřít menu' }).click()
-    await page.getByRole('dialog', { name: 'Navigace Tarot Trainer' }).getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true }).click()
-  }
 }

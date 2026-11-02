@@ -36,7 +36,9 @@ export interface SpreadCardState {
 }
 
 export interface ThreeCardSpreadState {
-  version: 1
+  version: 2
+  readingId: string | null
+  dealtAt: string | null
   layoutId: SpreadLayoutId
   area: DailyArea
   question: string

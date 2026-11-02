@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy, onMount } from 'svelte'
   import { SPREAD_LAYOUTS } from '../data/spreadLayouts.ts'
   import { DAILY_AREA_LABELS } from '../data/dailyInterpretations.ts'
   import { getDailyInterpretation } from '../lib/dailyInterpretation.ts'
@@ -13,13 +14,15 @@
     onDelete,
     onExport,
     onImport,
+    onDirtyChange,
   }: {
     journal: JournalState
     cards: readonly TarotCard[]
     onNote: (id: string, note: string) => boolean
-    onDelete: (id: string) => void
+    onDelete: (id: string) => boolean
     onExport: () => void
     onImport: (text: string) => void
+    onDirtyChange: (dirty: boolean) => void
   } = $props()
 
   let selectedId = $state<string | null>(null)
@@ -30,8 +33,16 @@
   const cardById = $derived(new Map(cards.map(c => [c.id, c])))
   const visible = $derived(journal.entries.filter(e => filter === 'all' || e.type === filter))
   const selected = $derived(journal.entries.find(e => e.id === selectedId) ?? null)
+  const noteDirty = $derived(selected !== null && draftNote !== selected.note)
+
+  $effect(() => onDirtyChange(noteDirty))
+
+  function confirmDiscardNote(): boolean {
+    return !noteDirty || window.confirm('Poznámka není uložená. Opravdu ji chcete zahodit?')
+  }
 
   function select(entry: JournalEntry): void {
+    if (!confirmDiscardNote()) return
     selectedId = entry.id
     draftNote = entry.note
     message = ''
@@ -42,13 +53,47 @@
     message = onNote(selected.id, draftNote) ? 'Poznámka uložena.' : 'Nepodařilo se uložit. Zkontrolujte volné místo.'
   }
 
+  function closeDetail(): void {
+    if (!confirmDiscardNote()) return
+    selectedId = null
+    message = ''
+  }
+
+  function removeSelected(): void {
+    if (!selected || !window.confirm('Opravdu odstranit tento výklad?')) return
+    if (onDelete(selected.id)) {
+      selectedId = null
+      draftNote = ''
+      message = ''
+    } else {
+      message = 'Odstranění se nepodařilo. Zkontrolujte volné místo.'
+    }
+  }
+
   async function readImport(event: Event): Promise<void> {
     const file = (event.currentTarget as HTMLInputElement).files?.[0]
     if (!file) return
-    if (file.size > 1024 * 1024) { message = 'Soubor je příliš velký (max. 1 MB).'; return }
-    try { onImport(await file.text()) } catch { message = 'Import se nepodařil.' }
-    if (fileInput) fileInput.value = ''
+    try {
+      if (file.size > 1024 * 1024) message = 'Soubor je příliš velký (max. 1 MB).'
+      else onImport(await file.text())
+    } catch {
+      message = 'Import se nepodařil.'
+    } finally {
+      if (fileInput) fileInput.value = ''
+    }
   }
+
+  onMount(() => {
+    const protectDraft = (event: BeforeUnloadEvent): void => {
+      if (!noteDirty) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', protectDraft)
+    return () => window.removeEventListener('beforeunload', protectDraft)
+  })
+
+  onDestroy(() => onDirtyChange(false))
 </script>
 
 <section class="journal" aria-labelledby="journal-title">
@@ -60,6 +105,9 @@
     <span>{journal.entries.length} / 100 záznamů</span>
   </header>
   <p class="muted">Výklady se ukládají jen do tohoto prohlížeče. Pro zachování při smazání dat použijte export.</p>
+  {#if journal.entries.length >= 90}
+    <p class="storage-warning" role="status">Deník se blíží limitu 100 záznamů. Doporučujeme vytvořit zálohu exportem.</p>
+  {/if}
 
   <div class="journal-actions">
     <button type="button" onclick={onExport}>Export JSON</button>
@@ -68,9 +116,9 @@
   </div>
 
   <div class="journal-filters" aria-label="Filtr deníku">
-    <button type="button" class:active={filter==='all'} onclick={() => filter='all'}>Vše</button>
-    <button type="button" class:active={filter==='daily'} onclick={() => filter='daily'}>Karta dne</button>
-    <button type="button" class:active={filter==='spread'} onclick={() => filter='spread'}>Tři karty</button>
+    <button type="button" class:active={filter==='all'} aria-pressed={filter==='all'} onclick={() => filter='all'}>Vše</button>
+    <button type="button" class:active={filter==='daily'} aria-pressed={filter==='daily'} onclick={() => filter='daily'}>Karta dne</button>
+    <button type="button" class:active={filter==='spread'} aria-pressed={filter==='spread'} onclick={() => filter='spread'}>Tři karty</button>
   </div>
 
   {#if !selected}
@@ -98,18 +146,21 @@
       </ol>
     {/if}
   {:else}
-    <button type="button" class="back" onclick={() => {selectedId=null; message=''}}>← Zpět do deníku</button>
+    <button type="button" class="back" onclick={closeDetail}>← Zpět do deníku</button>
     <h3>{selected.type === 'daily' ? 'Karta dne' : SPREAD_LAYOUTS[selected.layoutId].title}</h3>
     <p class="muted">{new Date(selected.createdAt).toLocaleString('cs-CZ')} · {DAILY_AREA_LABELS[selected.area]}</p>
     {#if selected.type === 'daily'}
       {@const card = cardById.get(selected.cardId)}
       {#if card}
+        {@const interpretation = getDailyInterpretation(card,selected.orientation,selected.area)}
         <div class="journal-card">
-          <img src={card.image} alt={card.nameCs} width="135" height="234" />
+          <img class:reversed={selected.orientation === 'reversed'} src={card.image} alt={card.nameCs} width="135" height="234" />
           <div>
             <h4>{card.nameCs}</h4>
             <small>{selected.orientation === 'reversed' ? 'Obrácená' : 'Přímá'} · {selected.localDate}</small>
-            <p>{getDailyInterpretation(card,selected.orientation,selected.area).summary}</p>
+            <p>{interpretation.summary}</p>
+            <p>{interpretation.traditionalConnection}</p>
+            <p class="reflection-question">{interpretation.reflectionQuestion}</p>
           </div>
         </div>
       {/if}
@@ -120,12 +171,14 @@
         {#if card}
           {@const interpretation = getSpreadCardInterpretation(card,saved.orientation,selected.layoutId,index,selected.area)}
           <div class="journal-card">
-            <img src={card.image} alt={card.nameCs} width="100" height="174" />
+            <img class:reversed={saved.orientation === 'reversed'} src={card.image} alt={card.nameCs} width="100" height="174" />
             <div>
               <small>{interpretation.position.title} · {saved.orientation === 'reversed' ? 'Obrácená' : 'Přímá'}</small>
               <h4>{card.nameCs}</h4>
+              <p>{interpretation.classicSummary}</p>
               <p>{interpretation.positionMeaning}</p>
               <p>{interpretation.areaConnection}</p>
+              <p class="reflection-question">{interpretation.reflectionQuestion}</p>
             </div>
           </div>
         {/if}
@@ -135,18 +188,22 @@
         {@const combined = getCombinedSpreadInterpretation(resolved,selected.layoutId,selected.question)}
         <div class="journal-combined">
           <h4>Společný výklad</h4>
+          <p>{combined.overview}</p>
+          <ul>{#each combined.cardThemes as theme}<li>{theme}</li>{/each}</ul>
           <p>{combined.pattern}</p>
-          <p>{combined.finalQuestion}</p>
+          <ul>{#each combined.connectionQuestions as question}<li>{question}</li>{/each}</ul>
+          <p class="reflection-question">{combined.finalQuestion}</p>
         </div>
       {/if}
     {/if}
 
     <label class="note-label" for="journal-note">Moje poznámky</label>
     <textarea id="journal-note" rows="5" maxlength="2000" bind:value={draftNote} placeholder="Co pro mě výklad znamená?"></textarea>
+    {#if noteDirty}<p class="unsaved-note" role="status">Poznámka obsahuje neuložené změny.</p>{/if}
     {#if message}<p role="status">{message}</p>{/if}
     <div class="journal-actions">
       <button type="button" onclick={saveNote}>Uložit poznámku</button>
-      <button type="button" class="danger" onclick={() => { if(selected && confirm('Opravdu odstranit tento výklad?')) { onDelete(selected.id); selectedId=null; } }}>Odstranit výklad</button>
+      <button type="button" class="danger" onclick={removeSelected}>Odstranit výklad</button>
     </div>
   {/if}
 </section>
@@ -174,12 +231,18 @@
   .journal-thumbs img { width:clamp(24px,7vw,44px); height:auto; max-height:76px; object-fit:contain; border-radius:0.25rem; }
   .journal-card { display:flex; align-items:start; gap:1rem; padding:0.85rem; background:var(--surface); border:1px solid var(--border); border-radius:0.8rem; }
   .journal-card img { width:min(28%,135px); height:auto; flex-shrink:0; }
+  .journal-card img.reversed { transform:rotate(180deg); }
   .journal-card p,.journal-combined p { margin-top:0.45rem; font-size:0.84rem; line-height:1.6; }
   .journal-card small { color:var(--gold); }
   .journal-combined { padding:1rem; background:var(--surface); border-radius:0.8rem; }
+  .journal-combined ul { padding-left:1.2rem; color:var(--muted); font-size:0.82rem; line-height:1.55; }
+  .journal-combined li + li { margin-top:0.35rem; }
+  .reflection-question { padding-left:0.7rem; border-left:2px solid var(--gold); }
   .question { font-style:italic; }
   .note-label { color:var(--gold); font-weight:700; }
   textarea { width:100%; padding:0.8rem; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:0.8rem; }
+  .unsaved-note { color:#f0d69a; font-size:0.76rem; }
+  .storage-warning { color:#f0d69a; font-size:0.82rem; }
   .empty { padding:2rem; text-align:center; color:var(--muted); }
   .sr-only { position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; }
   @media(max-width:359px){.journal-card{gap:0.6rem;padding:0.6rem;}.journal-header{flex-wrap:wrap;}}

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { openCardSettings } from './helpers.ts'
 
 test.use({
   userAgent:
@@ -31,7 +32,8 @@ test('první tapnutí v iPhone prostředí odhalí obrácený význam', async ({
   await page.evaluate(() => localStorage.clear())
   await page.reload()
 
-  await page.getByLabel('Reversed').tap()
+  await openCardSettings(page)
+  await page.getByRole('checkbox', { name: /^Reversed\b/ }).tap()
   const card = page.locator('.tarot-card')
   await expect(card).toHaveAttribute('data-orientation', 'reversed')
   await card.locator('.card-front').tap()

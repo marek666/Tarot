@@ -7,11 +7,16 @@ import type {
 } from '../types/spread.ts'
 import { SPREAD_LAYOUT_IDS } from '../types/spread.ts'
 import type { CardOrientation } from '../types/trainer.ts'
-import { sampleRandomIndex, secureRandomUint32, type RandomUint32Source } from './random.ts'
+import {
+  createUniqueId,
+  sampleRandomIndex,
+  secureRandomUint32,
+  type RandomUint32Source,
+} from './random.ts'
 import type { StorageLike } from './trainerState.ts'
 
 export const SPREAD_STATE_KEY = 'tarot-trainer:spread'
-export const SPREAD_STATE_VERSION = 1
+export const SPREAD_STATE_VERSION = 2
 export const SPREAD_QUESTION_MAX_LENGTH = 280
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -30,6 +35,18 @@ function isOrientation(value: unknown): value is CardOrientation {
   return value === 'upright' || value === 'reversed'
 }
 
+function isValidReadingId(value: unknown): value is string {
+  return typeof value === 'string' && /^spread:[a-f0-9]{32}$/.test(value)
+}
+
+function isValidIsoDate(value: unknown): value is string {
+  return typeof value === 'string' && new Date(value).toISOString() === value
+}
+
+export function createSpreadReadingId(): string {
+  return createUniqueId('spread')
+}
+
 export function normalizeSpreadQuestion(value: string): string {
   return value.replace(/\s+/g, ' ').trim().slice(0, SPREAD_QUESTION_MAX_LENGTH)
 }
@@ -39,6 +56,8 @@ export function createDefaultSpreadState(
 ): ThreeCardSpreadState {
   return {
     version: SPREAD_STATE_VERSION,
+    readingId: null,
+    dealtAt: null,
     layoutId: 'timeline',
     area: 'general',
     question: '',
@@ -51,10 +70,12 @@ export function createDefaultSpreadState(
 export function parseSpreadState(
   raw: string,
   validCardIds: readonly string[],
+  createId: () => string = createSpreadReadingId,
+  now: Date = new Date(),
 ): ThreeCardSpreadState | null {
   try {
     const value: unknown = JSON.parse(raw)
-    if (!isRecord(value) || value.version !== SPREAD_STATE_VERSION) return null
+    if (!isRecord(value) || (value.version !== 1 && value.version !== SPREAD_STATE_VERSION)) return null
     if (
       !isLayoutId(value.layoutId) ||
       !isArea(value.area) ||
@@ -93,8 +114,22 @@ export function parseSpreadState(
 
     if (new Set(parsedCards.map((card) => card.cardId)).size !== parsedCards.length) return null
 
+    const hasCards = parsedCards.length === 3
+    const readingId = value.version === 1
+      ? hasCards ? createId() : null
+      : value.readingId
+    const dealtAt = value.version === 1
+      ? hasCards ? now.toISOString() : null
+      : value.dealtAt
+    if (
+      (hasCards && (!isValidReadingId(readingId) || !isValidIsoDate(dealtAt))) ||
+      (!hasCards && (readingId !== null || dealtAt !== null))
+    ) return null
+
     return {
       version: SPREAD_STATE_VERSION,
+      readingId: readingId as string | null,
+      dealtAt: dealtAt as string | null,
       layoutId: value.layoutId,
       area: value.area,
       question: normalizeSpreadQuestion(value.question),
@@ -130,7 +165,10 @@ export function loadSpreadState(
     const raw = storage.getItem(SPREAD_STATE_KEY)
     if (!raw) return createDefaultSpreadState(defaultReversedEnabled)
     const parsed = parseSpreadState(raw, validCardIds)
-    if (parsed) return parsed
+    if (parsed) {
+      if (JSON.parse(raw).version !== SPREAD_STATE_VERSION) saveSpreadState(storage, parsed)
+      return parsed
+    }
     storage.removeItem(SPREAD_STATE_KEY)
   } catch {
     // Paměťový stav zůstane použitelný i při blokovaném localStorage.
@@ -159,6 +197,8 @@ export function dealThreeCardSpread(
   state: ThreeCardSpreadState,
   cardIds: readonly string[],
   randomUint32: RandomUint32Source = secureRandomUint32,
+  createId: () => string = createSpreadReadingId,
+  now: Date = new Date(),
 ): ThreeCardSpreadState {
   if (cardIds.length < 3) throw new RangeError('Tříkaretní výklad vyžaduje alespoň tři karty.')
 
@@ -180,7 +220,13 @@ export function dealThreeCardSpread(
     })
   }
 
-  return { ...state, question: normalizeSpreadQuestion(state.question), cards }
+  return {
+    ...state,
+    readingId: createId(),
+    dealtAt: now.toISOString(),
+    question: normalizeSpreadQuestion(state.question),
+    cards,
+  }
 }
 
 export function revealSpreadCard(
@@ -227,7 +273,7 @@ export function revealSpreadInterpretation(
 }
 
 export function clearSpreadCards(state: ThreeCardSpreadState): ThreeCardSpreadState {
-  return { ...state, cards: [] }
+  return { ...state, readingId: null, dealtAt: null, cards: [] }
 }
 
 export function isSpreadUnfinished(state: ThreeCardSpreadState): boolean {

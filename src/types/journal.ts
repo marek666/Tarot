@@ -23,4 +23,4 @@ export interface JournalSpreadEntry extends JournalBase {
 }
 
 export type JournalEntry = JournalDailyEntry | JournalSpreadEntry
-export interface JournalState { version: 1; entries: JournalEntry[] }
+export interface JournalState { version: 2; entries: JournalEntry[] }

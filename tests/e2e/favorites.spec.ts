@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { navigateMode } from './helpers.ts'
 
 test('oblíbené fungují napříč režimy a zůstanou uložené po reloadu', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
@@ -32,13 +33,3 @@ test('oblíbené fungují napříč režimy a zůstanou uložené po reloadu', a
   expect(state.version).toBe(3)
   expect(state.favoriteCardIds).toEqual(['major-00-fool'])
 })
-
-async function navigateMode(page: import('@playwright/test').Page, name: string): Promise<void> {
-  const desktop = page.locator('.site-header .desktop-nav').getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true })
-  if (await desktop.isVisible()) {
-    await desktop.click()
-  } else {
-    await page.getByRole('button', { name: 'Otevřít menu' }).click()
-    await page.getByRole('dialog', { name: 'Navigace Tarot Trainer' }).getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true }).click()
-  }
-}

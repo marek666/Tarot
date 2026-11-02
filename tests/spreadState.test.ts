@@ -46,6 +46,8 @@ test('los vybere přesně tři různé karty bez změny zdrojového balíčku', 
   assert.equal(reading.cards.length, 3)
   assert.equal(new Set(reading.cards.map((card) => card.cardId)).size, 3)
   assert.ok(reading.cards.every((card) => card.orientation === 'upright'))
+  assert.match(reading.readingId ?? '', /^spread:[a-f0-9]{32}$/)
+  assert.ok(reading.dealtAt)
   assert.deepEqual(cardIds, original)
 })
 
@@ -113,6 +115,26 @@ test('rozepsaná otázka zachová mezery při psaní a při losu se bezpečně n
   assert.equal(dealThreeCardSpread(draft, cardIds, () => 0).question, 'Co potřebuji lépe')
 })
 
+test('stav v1 se migruje na v2 se stabilním ID relace a uloží zpět', () => {
+  const storage = new MemoryStorage()
+  const current = dealThreeCardSpread(
+    createDefaultSpreadState(),
+    cardIds,
+    () => 0,
+    () => 'spread:' + 'a'.repeat(32),
+    new Date('2026-11-02T10:00:00.000Z'),
+  )
+  const { readingId: _readingId, dealtAt: _dealtAt, ...legacy } = current
+  storage.setItem(SPREAD_STATE_KEY, JSON.stringify({ ...legacy, version: 1 }))
+
+  const migrated = loadSpreadState(storage, cardIds)
+  assert.equal(migrated.version, 2)
+  assert.match(migrated.readingId ?? '', /^spread:[a-f0-9]{32}$/)
+  assert.ok(migrated.dealtAt)
+  assert.deepEqual(migrated.cards, current.cards)
+  assert.equal(JSON.parse(storage.getItem(SPREAD_STATE_KEY)!).version, 2)
+})
+
 test('neplatná uložená data se odstraní a nahradí výchozím stavem', () => {
   const storage = new MemoryStorage()
   storage.setItem(SPREAD_STATE_KEY, JSON.stringify({
@@ -158,7 +180,10 @@ test('odhalování respektuje výukový režim a rychlé opakování je idempote
   state = revealAllSpreadCards(state)
   assert.ok(state.cards.every((card) => card.revealed))
   assert.equal(state.cards[1]!.interpretationRevealed, false)
-  assert.equal(clearSpreadCards(state).cards.length, 0)
+  const cleared = clearSpreadCards(state)
+  assert.equal(cleared.cards.length, 0)
+  assert.equal(cleared.readingId, null)
+  assert.equal(cleared.dealtAt, null)
 })
 
 test('uložení výkladu nemění existující trainerState ani Kartu dne', () => {

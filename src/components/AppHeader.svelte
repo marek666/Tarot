@@ -25,7 +25,8 @@
   const currentLabel = $derived(modes.find((item) => item.id === mode)?.label ?? 'Prohlížení')
 
   function openMenu(): void {
-    mobileDialog?.showModal()
+    if (!mobileDialog || mobileDialog.open) return
+    mobileDialog.showModal()
     menuOpen = true
   }
 
@@ -85,6 +86,7 @@
   id="mobile-navigation"
   class="mobile-menu-dialog"
   aria-label="Navigace Tarot Trainer"
+  aria-modal="true"
   onclose={handleDialogClose}
   onclick={closeOnBackdrop}
 >
@@ -143,7 +145,7 @@
   .mobile-nav button.active { background: rgb(216 184 108 / 15%); border-color: var(--gold); color: var(--gold); }
   button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 
-  @media (max-width: 699px) {
+  @media (max-width: 839px) {
     .desktop-nav { display: none; }
     .mobile-menu-trigger {
       width: 44px; height: 44px; padding: 0;

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { navigateMode } from './helpers.ts'
 
 const viewports = [
   { width: 320, height: 568, group: 'mobile' },
@@ -80,7 +81,6 @@ test('sticky karta se zapíná jen na dostatečně vysokém desktopu', async ({ 
   await expect.poll(async () => (await page.locator('.chapter-aside').boundingBox())?.y).toBeGreaterThanOrEqual(15)
   expect((await page.locator('.chapter-aside').boundingBox())?.y ?? 100).toBeLessThanOrEqual(18)
 })
-
 test('změna kapitoly po scrollování vrátí čtenáře na její začátek', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await openFreshJourney(page)
@@ -126,10 +126,10 @@ test('desktopové Prohlížení a Učení zůstávají centrované a pohodlně �
   await page.reload()
 
   const shell = await page.locator('.app-shell').boundingBox()
-  const controls = await page.locator('.mode-controls').boundingBox()
+  const toolbar = await page.locator('.card-toolbar').boundingBox()
   const card = await page.locator('.tarot-card').boundingBox()
   expect(shell?.width ?? 0).toBeGreaterThanOrEqual(730)
-  expect(controls?.width ?? 0).toBeGreaterThanOrEqual(440)
+  expect(toolbar?.width ?? 0).toBeGreaterThanOrEqual(380)
   expect(card?.width ?? 0).toBeGreaterThanOrEqual(330)
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
 
@@ -138,13 +138,3 @@ test('desktopové Prohlížení a Učení zůstávají centrované a pohodlně �
   expect((await page.locator('.study-progress').boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(440)
   await expect(page.getByRole('button', { name: /Pokrok v učení/ })).toHaveAttribute('aria-expanded', 'false')
 })
-
-async function navigateMode(page: import('@playwright/test').Page, name: string): Promise<void> {
-  const desktop = page.locator('.site-header .desktop-nav').getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true })
-  if (await desktop.isVisible()) {
-    await desktop.click()
-  } else {
-    await page.getByRole('button', { name: 'Otevřít menu' }).click()
-    await page.getByRole('dialog', { name: 'Navigace Tarot Trainer' }).getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true }).click()
-  }
-}

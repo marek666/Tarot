@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { navigateMode, setCardSetting } from './helpers.ts'
 
 const viewports = [
   { name: '320 px', width: 320, height: 720 },
@@ -49,7 +50,7 @@ test('obrácená ilustrace po klepnutí vždy ukáže obrácený význam', async
   await page.setViewportSize({ width: 390, height: 844 })
   await openFreshApp(page)
 
-  await page.getByLabel('Reversed').check()
+  await setCardSetting(page, 'Reversed', true)
   const card = page.locator('.tarot-card')
   await expect(card).toHaveAttribute('data-orientation', 'reversed')
   await expect(card.locator('img.reversed')).toBeVisible()
@@ -66,7 +67,6 @@ test('obrácená ilustrace po klepnutí vždy ukáže obrácený význam', async
   )
   expect(overflow).toBeLessThanOrEqual(1)
 })
-
 test('dotykové přejetí listuje bez náhodného otočení', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await openFreshApp(page)
@@ -143,13 +143,3 @@ test('layout zůstává použitelný po změně orientace', async ({ page }) => 
     await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1),
   ).toBe(true)
 })
-
-async function navigateMode(page: import('@playwright/test').Page, name: string): Promise<void> {
-  const desktop = page.locator('.site-header .desktop-nav').getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true })
-  if (await desktop.isVisible()) {
-    await desktop.click()
-  } else {
-    await page.getByRole('button', { name: 'Otevřít menu' }).click()
-    await page.getByRole('dialog', { name: 'Navigace Tarot Trainer' }).getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true }).click()
-  }
-}
