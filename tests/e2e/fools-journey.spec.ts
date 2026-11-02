@@ -106,7 +106,7 @@ test('přímé přepnutí z rozečteného studia přes příběh zachová platno
   await expect(page.getByRole('button', { name: 'Prohlížení' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.locator('.progress')).toHaveText('1/78')
   const state = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot-trainer:state')!))
-  expect(state.version).toBe(2)
+  expect(state.version).toBe(3)
   expect(state.studyRevealed).toBe(false)
 })
 
