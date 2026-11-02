@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 test('panel pokroku je pouze v Učení, je sbalený a zachová data i kartu', async ({ page }) => {
   await openFreshApp(page)
   await expect(page.locator('.study-progress')).toHaveCount(0)
-  await page.getByRole('button', { name: 'Učení' }).click()
+  await navigateMode(page, 'Učení')
 
   const toggle = page.getByRole('button', { name: /Pokrok v učení — 0\/78/ })
   await expect(toggle).toHaveAttribute('aria-expanded', 'false')
@@ -35,14 +35,14 @@ test('panel pokroku je pouze v Učení, je sbalený a zachová data i kartu', as
 
   await page.reload()
   await expect(page.getByRole('button', { name: /Pokrok v učení/ })).toHaveAttribute('aria-expanded', 'true')
-  await page.getByRole('button', { name: 'Prohlížení' }).click()
+  await navigateMode(page, 'Prohlížení')
   await expect(page.locator('.study-progress')).toHaveCount(0)
 })
 
 test('Cesta Blázna umožní navigaci, výběr kapitoly, význam a návrat', async ({ page }) => {
   await openFreshApp(page)
-  await page.getByRole('button', { name: 'Učení' }).click()
-  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+  await navigateMode(page, 'Učení')
+  await navigateMode(page, 'Cesta Blázna')
 
   await expect(page.locator('.progress')).toHaveText('1/22')
   await expect(page.getByRole('heading', { name: 'První krok' })).toBeVisible()
@@ -73,14 +73,14 @@ test('Cesta Blázna umožní navigaci, výběr kapitoly, význam a návrat', asy
 
 test('rozečtená kapitola a nejvyšší postup přežijí reload i přepnutí režimu', async ({ page }) => {
   await openFreshApp(page)
-  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+  await navigateMode(page, 'Cesta Blázna')
   await page.getByRole('button', { name: /Vybrat kapitolu/ }).click()
   await page.locator('.picker-card[data-card-id="major-14-temperance"]').click()
   await expect(page.locator('.progress')).toHaveText('15/22')
 
-  await page.getByRole('button', { name: 'Prohlížení' }).click()
+  await navigateMode(page, 'Prohlížení')
   await expect(page.locator('.progress')).toHaveText('1/78')
-  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+  await navigateMode(page, 'Cesta Blázna')
   await expect(page.locator('.progress')).toHaveText('15/22')
 
   await page.reload()
@@ -97,10 +97,10 @@ test('rozečtená kapitola a nejvyšší postup přežijí reload i přepnutí r
 
 test('přímé přepnutí z rozečteného studia přes příběh zachová platnou relaci', async ({ page }) => {
   await openFreshApp(page)
-  await page.getByRole('button', { name: 'Učení' }).click()
+  await navigateMode(page, 'Učení')
   await page.getByRole('button', { name: 'Odhalit význam' }).click()
-  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
-  await page.getByRole('button', { name: 'Prohlížení' }).click()
+  await navigateMode(page, 'Cesta Blázna')
+  await navigateMode(page, 'Prohlížení')
   await page.reload()
 
   await expect(page.getByRole('button', { name: 'Prohlížení' })).toHaveAttribute('aria-pressed', 'true')
@@ -112,7 +112,7 @@ test('přímé přepnutí z rozečteného studia přes příběh zachová platno
 
 test('Cesta Blázna zůstane dostupná offline', async ({ page, context }) => {
   await openFreshApp(page)
-  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+  await navigateMode(page, 'Cesta Blázna')
   await page.getByRole('button', { name: 'Další →' }).click()
   await page.evaluate(async () => navigator.serviceWorker.ready)
   await page.reload()
@@ -135,7 +135,7 @@ for (const viewport of [
   test(`Cesta Blázna se vejde do viewportu ${viewport.width} px`, async ({ page }) => {
     await page.setViewportSize(viewport)
     await openFreshApp(page)
-    await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+    await navigateMode(page, 'Cesta Blázna')
 
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
     const undersized = await page.locator('button:visible').evaluateAll((buttons) =>
@@ -151,7 +151,7 @@ for (const viewport of [
 test('desktop Cesty Blázna využívá široké dvousloupcové rozložení', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
   await openFreshApp(page)
-  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+  await navigateMode(page, 'Cesta Blázna')
 
   const layout = await page.locator('.chapter-layout').boundingBox()
   const aside = await page.locator('.chapter-aside').boundingBox()
@@ -162,3 +162,13 @@ test('desktop Cesty Blázna využívá široké dvousloupcové rozložení', asy
   await expect(page.getByRole('heading', { name: 'Příběh' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Návaznost' })).toBeVisible()
 })
+
+async function navigateMode(page: import('@playwright/test').Page, name: string): Promise<void> {
+  const desktop = page.locator('.site-header .desktop-nav').getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true })
+  if (await desktop.isVisible()) {
+    await desktop.click()
+  } else {
+    await page.getByRole('button', { name: 'Otevřít menu' }).click()
+    await page.getByRole('dialog', { name: 'Navigace Tarot Trainer' }).getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true }).click()
+  }
+}
