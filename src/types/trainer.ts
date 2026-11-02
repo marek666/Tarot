@@ -43,4 +43,9 @@ export interface TrainerStateV2 {
   journeyHighestChapterIndex: number
 }
 
-export type TrainerState = TrainerStateV2
+export interface TrainerStateV3 extends Omit<TrainerStateV2, 'version'> {
+  version: 3
+  favoriteCardIds: string[]
+}
+
+export type TrainerState = TrainerStateV3
