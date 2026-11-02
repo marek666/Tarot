@@ -19,6 +19,7 @@ Všechny podstatné změny projektu jsou evidovány v tomto souboru.
 
 ### Opraveno
 
+- Rozbalené nastavení Shuffle/Reversed je znovu široký inline panel pod výběrem karty; na desktopu se již netlačí do úzkého překryvného menu.
 - Dvě nezávislá vyložení stejných karet už nekolidují v deníku, zatímco opakované uložení stejné relace nevytvoří duplicitu.
 - Neuloženou poznámku nelze tiše ztratit při návratu, přepnutí podzáložky, změně režimu ani zavření stránky.
 - Import nad limitem se celý odmítne, poškozená lokální data se nepřepíší a chyby nedostupného či zaplněného úložiště se zobrazí bez pádu aplikace.

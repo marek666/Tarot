@@ -731,54 +731,49 @@
         />
       {/if}
 
-      <div class="card-toolbar">
-        <CardPicker
-          cards={tarotDeck}
-          currentCardId={currentCard.id}
-          onSelect={selectCard}
-          showStudyFilters={mode === 'study'}
-          studyProgress={mode === 'study' ? studyProgress : null}
-          favoriteCardIds={favoriteCardIds}
-        />
+      <CardPicker
+        cards={tarotDeck}
+        currentCardId={currentCard.id}
+        onSelect={selectCard}
+        showStudyFilters={mode === 'study'}
+        studyProgress={mode === 'study' ? studyProgress : null}
+        favoriteCardIds={favoriteCardIds}
+      />
 
-        <details class="compact-settings">
-          <summary aria-label={`Nastavení karet${shuffleEnabled ? ', Shuffle aktivní' : ''}${reversedEnabled ? ', Reversed aktivní' : ''}`}>
-            <span>Nastavení</span>
-            {#if shuffleEnabled || reversedEnabled}
-              <span class="settings-state" aria-hidden="true">{shuffleEnabled ? 'S' : ''}{reversedEnabled ? 'R' : ''}</span>
-            {/if}
-          </summary>
-          <fieldset class="mode-controls">
-            <legend class="visually-hidden">Nastavení pořadí a orientace karet</legend>
+      <details class="compact-settings">
+        <summary aria-label={`Nastavení karet${shuffleEnabled ? ', Shuffle aktivní' : ''}${reversedEnabled ? ', Reversed aktivní' : ''}`}>
+          Nastavení karet{shuffleEnabled ? ' · Shuffle' : ''}{reversedEnabled ? ' · Reversed' : ''}
+        </summary>
+        <fieldset class="mode-controls">
+          <legend class="visually-hidden">Nastavení pořadí a orientace karet</legend>
 
-            <label class:active={shuffleEnabled} class="mode-toggle">
-              <span class="mode-copy">
-                <strong>Shuffle</strong>
-                <small>{shuffleEnabled ? 'Zamícháno' : 'Tradiční pořadí'}</small>
-              </span>
-              <input
-                type="checkbox"
-                checked={shuffleEnabled}
-                onchange={(event) => updateShuffle(event.currentTarget.checked)}
-              />
-              <span class="switch" aria-hidden="true"></span>
-            </label>
+          <label class:active={shuffleEnabled} class="mode-toggle">
+            <span class="mode-copy">
+              <strong>Shuffle</strong>
+              <small>{shuffleEnabled ? 'Zamícháno' : 'Tradiční pořadí'}</small>
+            </span>
+            <input
+              type="checkbox"
+              checked={shuffleEnabled}
+              onchange={(event) => updateShuffle(event.currentTarget.checked)}
+            />
+            <span class="switch" aria-hidden="true"></span>
+          </label>
 
-            <label class:active={reversedEnabled} class="mode-toggle">
-              <span class="mode-copy">
-                <strong>Reversed</strong>
-                <small>{reversedEnabled ? '50 % obráceně' : 'Jen přímé karty'}</small>
-              </span>
-              <input
-                type="checkbox"
-                checked={reversedEnabled}
-                onchange={(event) => updateReversed(event.currentTarget.checked)}
-              />
-              <span class="switch" aria-hidden="true"></span>
-            </label>
-          </fieldset>
-        </details>
-      </div>
+          <label class:active={reversedEnabled} class="mode-toggle">
+            <span class="mode-copy">
+              <strong>Reversed</strong>
+              <small>{reversedEnabled ? '50 % obráceně' : 'Jen přímé karty'}</small>
+            </span>
+            <input
+              type="checkbox"
+              checked={reversedEnabled}
+              onchange={(event) => updateReversed(event.currentTarget.checked)}
+            />
+            <span class="switch" aria-hidden="true"></span>
+          </label>
+        </fieldset>
+      </details>
 
     <div class="card-context" aria-live="polite">
       <p>{groupLabel}</p>

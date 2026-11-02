@@ -126,10 +126,10 @@ test('desktopové Prohlížení a Učení zůstávají centrované a pohodlně �
   await page.reload()
 
   const shell = await page.locator('.app-shell').boundingBox()
-  const toolbar = await page.locator('.card-toolbar').boundingBox()
+  const picker = await page.locator('.picker-trigger').boundingBox()
   const card = await page.locator('.tarot-card').boundingBox()
   expect(shell?.width ?? 0).toBeGreaterThanOrEqual(730)
-  expect(toolbar?.width ?? 0).toBeGreaterThanOrEqual(380)
+  expect(picker?.width ?? 0).toBeGreaterThanOrEqual(380)
   expect(card?.width ?? 0).toBeGreaterThanOrEqual(330)
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
 

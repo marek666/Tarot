@@ -169,31 +169,24 @@ h2 {
   border: 0;
 }
 
-.card-toolbar {
-  position: relative;
-  z-index: 5;
+.compact-settings {
   width: min(100%, 25rem);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(7.3rem, auto);
-  gap: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
 }
-.card-toolbar .picker-trigger { width: 100%; }
-.compact-settings { position:relative; width:100%; }
 .compact-settings > summary {
-  min-height:44px; padding:0.55rem 0.75rem; display:flex; align-items:center; justify-content:space-between;
-  gap:0.45rem; cursor:pointer; color:var(--gold); background:var(--surface);
-  border:1px solid var(--border); border-radius:0.75rem; font-size:0.76rem; font-weight:700; list-style:none;
+  min-height: 44px;
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+  color: var(--gold);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
-.compact-settings > summary::-webkit-details-marker { display:none; }
-.compact-settings > summary::after { content:'⌄'; margin-left:auto; color:var(--muted); }
-.compact-settings[open] > summary::after { transform:rotate(180deg); }
-.settings-state { min-width:1.45rem; padding:0.12rem 0.3rem; color:#101722; background:var(--gold); border-radius:999px; font-size:0.62rem; text-align:center; }
 .compact-settings > summary:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .compact-settings .mode-controls {
-  position:absolute; top:calc(100% + 0.35rem); right:0; z-index:20;
-  width:min(22rem, calc(100vw - 2rem)); padding:0.65rem;
-  background:#091525; border:1px solid rgb(216 184 108 / 38%); border-radius:0.8rem;
-  box-shadow:0 1rem 2.5rem rgb(0 0 0 / 48%);
+  width: 100%;
+  padding: 0 0.6rem 0.6rem;
 }
 
 .trainer-mode-switch {
