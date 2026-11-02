@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CardPicker from './CardPicker.svelte'
   import type { FoolsJourneyChapter, FoolsJourneySection } from '../types/foolsJourney.ts'
   import type { TarotCard } from '../types/tarot.ts'
 
@@ -8,7 +9,6 @@
     index,
     chapters,
     cards,
-    highestIndex,
     onSelect,
     onPrevious,
     onNext,
@@ -20,7 +20,6 @@
     index: number
     chapters: readonly FoolsJourneyChapter[]
     cards: readonly TarotCard[]
-    highestIndex: number
     onSelect: (index: number) => void
     onPrevious: () => void
     onNext: () => void
@@ -36,6 +35,11 @@
   }
   const numerals = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI']
   let meaningOpen = $state(false)
+
+  function selectJourneyCard(cardId: string): void {
+    const chapterIndex = chapters.findIndex((item) => item.cardId === cardId)
+    if (chapterIndex >= 0) onSelect(chapterIndex)
+  }
 </script>
 
 <section class="journey" aria-labelledby="journey-chapter-title">
@@ -51,94 +55,88 @@
     </p>
   </details>
 
-  <details class="chapter-picker">
-    <summary>Vybrat kapitolu <span>{index + 1}/22</span></summary>
-    <ol>
-      {#each chapters as item, itemIndex}
-        <li>
-          <button
-            type="button"
-            class:current={itemIndex === index}
-            class:reached={itemIndex <= highestIndex}
-            aria-current={itemIndex === index ? 'step' : undefined}
-            onclick={() => onSelect(itemIndex)}
-          >
-            <span>{numerals[itemIndex]}</span>
-            {cards[itemIndex]?.nameCs}
-          </button>
-        </li>
-      {/each}
-    </ol>
-  </details>
-
-  <header class="chapter-header">
-    <p class="chapter-section">{sectionLabels[chapter.section]}</p>
-    <p class="chapter-number">Kapitola {index + 1}/22 · {numerals[index]} {card.nameCs}</p>
-    <h2 id="journey-chapter-title">{chapter.chapterTitle}</h2>
-  </header>
+  <CardPicker
+    cards={cards}
+    currentCardId={card.id}
+    onSelect={selectJourneyCard}
+    triggerLabel={`Vybrat kapitolu · ${index + 1}/22`}
+    dialogTitle="Vybrat kapitolu Cesty Blázna"
+    wide
+  />
 
   <div class="chapter-layout">
-    <figure>
-      <img src={card.image} alt={`Tarotová karta ${card.nameCs}`} width="640" height="1110" />
-      <figcaption>{numerals[index]} — {card.nameCs}</figcaption>
-    </figure>
+    <aside class="chapter-aside">
+      <header class="chapter-header">
+        <p class="chapter-section">{sectionLabels[chapter.section]}</p>
+        <p class="chapter-number">Kapitola {index + 1}/22 · {numerals[index]} {card.nameCs}</p>
+        <h2 id="journey-chapter-title">{chapter.chapterTitle}</h2>
+      </header>
 
-    <div class="chapter-copy">
-      <p class="story">{chapter.story}</p>
+      <figure>
+        <img src={card.image} alt={`Tarotová karta ${card.nameCs}`} width="640" height="1110" />
+        <figcaption>{numerals[index]} — {card.nameCs}</figcaption>
+      </figure>
+    </aside>
+
+    <div class="chapter-content">
+      <section class="story-section" aria-labelledby="journey-story-title">
+        <h3 id="journey-story-title">Příběh</h3>
+        <p class="story">{chapter.story}</p>
+      </section>
 
       <section class="lesson" aria-labelledby="journey-lesson-title">
         <h3 id="journey-lesson-title">Co se Blázen naučil</h3>
         <p>{chapter.lesson}</p>
       </section>
+
+      <section class="symbols" aria-labelledby="journey-symbols-title">
+        <h3 id="journey-symbols-title">Symboly na kartě</h3>
+        <dl>
+          {#each chapter.symbols as symbol}
+            <div>
+              <dt>{symbol.name}</dt>
+              <dd>{symbol.meaning}</dd>
+            </div>
+          {/each}
+        </dl>
+      </section>
+
+      <section class="journey-keywords" aria-labelledby="journey-keywords-title">
+        <h3 id="journey-keywords-title">Klíčová slova</h3>
+        <ul>
+          {#each chapter.keywords as keyword}<li>{keyword}</li>{/each}
+        </ul>
+      </section>
+
+      <section class="connections" aria-labelledby="journey-connections-title">
+        <h3 id="journey-connections-title">Návaznost</h3>
+        <p><strong>Předchozí:</strong> {chapter.previousConnection}</p>
+        <p><strong>Následující:</strong> {chapter.nextConnection}</p>
+      </section>
+
+      <section class="classic-meaning">
+        <button
+          type="button"
+          aria-expanded={meaningOpen}
+          aria-controls="classic-card-meaning"
+          onclick={() => meaningOpen = !meaningOpen}
+        >
+          Otevřít klasický význam
+          <span class:expanded={meaningOpen} aria-hidden="true">⌄</span>
+        </button>
+        {#if meaningOpen}
+          <div id="classic-card-meaning">
+            <h3>{card.nameCs} — přímá poloha</h3>
+            <ul>
+              {#each card.upright.keywords as keyword}<li>{keyword}</li>{/each}
+            </ul>
+            <p>{card.upright.summary}</p>
+            <p>{card.upright.description}</p>
+          </div>
+        {/if}
+      </section>
     </div>
   </div>
-
-  <section class="symbols" aria-labelledby="journey-symbols-title">
-    <h3 id="journey-symbols-title">Symboly na kartě</h3>
-    <dl>
-      {#each chapter.symbols as symbol}
-        <div>
-          <dt>{symbol.name}</dt>
-          <dd>{symbol.meaning}</dd>
-        </div>
-      {/each}
-    </dl>
-  </section>
-
-  <section class="journey-keywords" aria-labelledby="journey-keywords-title">
-    <h3 id="journey-keywords-title">Zapamatujte si</h3>
-    <ul>
-      {#each chapter.keywords as keyword}<li>{keyword}</li>{/each}
-    </ul>
-  </section>
-
-  <section class="connections" aria-labelledby="journey-connections-title">
-    <h3 id="journey-connections-title">Souvislosti na cestě</h3>
-    <p><strong>Předchozí:</strong> {chapter.previousConnection}</p>
-    <p><strong>Následující:</strong> {chapter.nextConnection}</p>
-  </section>
-
-  <section class="classic-meaning">
-    <button
-      type="button"
-      aria-expanded={meaningOpen}
-      aria-controls="classic-card-meaning"
-      onclick={() => meaningOpen = !meaningOpen}
-    >
-      Klasický význam karty
-      <span class:expanded={meaningOpen} aria-hidden="true">⌄</span>
-    </button>
-    {#if meaningOpen}
-      <div id="classic-card-meaning">
-        <h3>{card.nameCs} — přímá poloha</h3>
-        <ul>
-          {#each card.upright.keywords as keyword}<li>{keyword}</li>{/each}
-        </ul>
-        <p>{card.upright.summary}</p>
-        <p>{card.upright.description}</p>
-      </div>
-    {/if}
-  </section>
 
   <nav class="journey-navigation" aria-label="Procházení Cesty Blázna">
     <button type="button" onclick={onPrevious} disabled={index === 0}>← Předchozí</button>
@@ -188,7 +186,6 @@
   }
 
   .journey-introduction,
-  .chapter-picker,
   .lesson,
   .symbols,
   .connections,
@@ -227,64 +224,11 @@
     content: '−';
   }
 
-  .chapter-picker > summary::after {
-    content: '⌄';
-  }
-
-  .chapter-picker[open] > summary::after {
-    transform: rotate(180deg);
-  }
-
   .journey-introduction p {
     padding: 0 0.85rem 0.85rem;
     color: var(--muted);
     font-size: 0.78rem;
     line-height: 1.55;
-  }
-
-  .chapter-picker ol {
-    margin: 0;
-    padding: 0 0.65rem 0.7rem;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.4rem;
-    list-style: none;
-  }
-
-  .chapter-picker button {
-    width: 100%;
-    min-width: 0;
-    padding: 0.45rem 0.55rem;
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    color: var(--muted);
-    background: #0a1625;
-    border: 1px solid transparent;
-    border-radius: 0.55rem;
-    font-size: 0.7rem;
-    text-align: left;
-  }
-
-  .chapter-picker button > span {
-    width: 1.8rem;
-    flex: 0 0 auto;
-    color: #78869a;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .chapter-picker button.reached {
-    border-color: var(--border);
-  }
-
-  .chapter-picker button.current {
-    color: #111927;
-    background: var(--gold);
-    border-color: var(--gold);
-  }
-
-  .chapter-picker button.current > span {
-    color: #344050;
   }
 
   .chapter-header {
@@ -318,6 +262,11 @@
     gap: 1rem;
   }
 
+  .chapter-aside,
+  .chapter-content {
+    display: contents;
+  }
+
   figure {
     width: min(100%, 17rem);
     margin: 0 auto;
@@ -339,10 +288,9 @@
     text-align: center;
   }
 
-  .chapter-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+  .story-section {
+    display: grid;
+    gap: 0.55rem;
   }
 
   .story {
@@ -481,12 +429,98 @@
       gap: 1.5rem;
     }
 
-    figure {
-      width: 100%;
+    .chapter-header {
+      grid-column: 1 / -1;
     }
 
-    .chapter-picker ol {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+    figure {
+      width: 100%;
+      grid-column: 1;
+      grid-row: 2 / span 2;
     }
+
+    .story-section {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    .lesson {
+      grid-column: 2;
+      grid-row: 3;
+    }
+
+    .symbols,
+    .journey-keywords,
+    .connections,
+    .classic-meaning {
+      grid-column: 1 / -1;
+    }
+
+  }
+
+  @media (min-width: 1100px) {
+    .journey {
+      width: min(100%, 80rem);
+      gap: 1.15rem;
+    }
+
+    .chapter-layout {
+      grid-template-columns: minmax(20rem, 24rem) minmax(0, 1fr);
+      gap: clamp(2rem, 4vw, 3.75rem);
+    }
+
+    .chapter-aside {
+      position: sticky;
+      top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      align-self: start;
+    }
+
+    .chapter-content {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .chapter-header {
+      text-align: left;
+    }
+
+    h2 {
+      font-size: clamp(2rem, 3vw, 2.8rem);
+    }
+
+    figure {
+      width: min(100%, 22rem);
+      margin-left: 0;
+    }
+
+    .story {
+      max-width: 48rem;
+      font-size: 1.1rem;
+    }
+
+    .symbols dl {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 1.25rem;
+    }
+
+    .symbols dl > div:nth-child(2) {
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .journey-keywords {
+      text-align: left;
+    }
+
+    .journey-keywords ul,
+    .classic-meaning ul {
+      justify-content: flex-start;
+    }
+
   }
 </style>

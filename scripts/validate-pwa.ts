@@ -74,6 +74,7 @@ match(applicationJavaScript, /tarot-trainer:state/, 'Produkční bundle neobsahu
 match(applicationJavaScript, /Cesta Blázna/, 'Produkční bundle neobsahuje režim Cesta Blázna.')
 match(applicationJavaScript, /První krok/, 'Produkční bundle neobsahuje příběhová data Cesty Blázna.')
 match(applicationJavaScript, /journeyChapterIndex/, 'Produkční bundle neobsahuje uložení rozečtené kapitoly.')
+match(applicationJavaScript, /Vybrat kartu/, 'Produkční bundle neobsahuje společný výběr karet.')
 
 console.log(
   'PWA: manifest, ikony, aktualizace, česká data, pokrok a všech 78 obrázků jsou ověřené pro offline provoz.',

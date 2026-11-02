@@ -1,4 +1,4 @@
-# Tarot Trainer 0.3.0
+# Tarot Trainer 0.3.1
 
 Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smith. Funguje bez backendu, účtu a připojení po prvním úspěšném načtení. Používá Svelte 5, TypeScript, Vite, čisté CSS, `vite-plugin-pwa` a malé testy nad vestavěným Node test runnerem a Playwrightem.
 
@@ -9,6 +9,7 @@ Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smi
 - Plynulé 3D otočení, navigaci tlačítky, vodorovným swipem a klávesami se zohledněním `prefers-reduced-motion`.
 - Režim Učení s odhalením významu a volbou „Umím“ nebo „Procvičit“.
 - Režim Cesta Blázna: souvislý výukový příběh všech 22 Velkých arkán se symbolikou, lekcemi a klasickým významem karty.
+- Jednotný výběr libovolné karty nebo kapitoly s náhledy, vyhledáváním bez diakritiky a filtry arkán, barev i studijního stavu.
 - Kompaktní rozbalovací panel studijního pokroku, který se zobrazuje pouze v režimu Učení.
 - Trvalé verzované uložení režimu, aktuální karty, zamíchaného pořadí, rozdaných orientací a pokroku v `localStorage`.
 - Offline provoz, instalovatelný manifest, lokální public-domain ilustrace a potvrzenou aktualizaci service workeru.
@@ -31,7 +32,7 @@ tests/
 └── *.test.ts     jednotkové testy čisté logiky
 ```
 
-`src/App.svelte` skládá obrazovku a drží lokální stav. `src/components/TarotCard.svelte` vykresluje klasickou kartu, `src/components/FoolsJourney.svelte` příběhovou kapitolu a `src/components/StudyProgressPanel.svelte` kompaktní pokrok. Pořadí, orientace, studijní priorita, validace příběhu a persistence jsou oddělené v `src/lib/`.
+`src/App.svelte` skládá obrazovku a drží lokální stav. `src/components/TarotCard.svelte` vykresluje klasickou kartu, `src/components/CardPicker.svelte` společný přístupný výběr karet, `src/components/FoolsJourney.svelte` příběhovou kapitolu a `src/components/StudyProgressPanel.svelte` kompaktní pokrok. Pořadí, orientace, filtrování pickeru, studijní priorita, validace příběhu a persistence jsou oddělené v `src/lib/`.
 
 ## Spuštění na Fedoře
 

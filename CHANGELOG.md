@@ -2,6 +2,24 @@
 
 Všechny podstatné změny projektu jsou evidovány v tomto souboru.
 
+## 0.3.1 — 2026-11-02
+
+### Přidáno
+
+- Společný přístupný výběr karet a kapitol jako mobilní bottom sheet a centrovaný desktopový dialog.
+- Vyhledávání podle českých i anglických názvů bez nutnosti zadávat diakritiku.
+- Filtry Velkých a Malých arkán, jednotlivých barev a v režimu Učení také stavů Umím, Procvičit a Zbývající.
+- Unit a Playwright testy přímého výběru, filtrování, klávesnice, Shuffle, Reversed, reloadu a studijního pokroku.
+
+### Změněno
+
+- Cesta Blázna používá stejný dialog pro výběr svých 22 kapitol.
+- Desktopová Cesta Blázna využívá široké dvousloupcové rozložení se sticky panelem karty.
+
+### Opraveno
+
+- Uložená relace nyní korektně obnoví přímý skok na vzdálenou kartu, aniž by přeskočeným kartám přidělila orientaci nebo studijní stav.
+
 ## 0.3.0 — 2026-11-02
 
 ### Přidáno

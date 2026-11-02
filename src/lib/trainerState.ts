@@ -130,11 +130,7 @@ function parseSessionFields(
   ) {
     return null
   }
-  if (
-    value.orientations
-      .slice(0, value.currentIndex + 1)
-      .some((orientation) => orientation === null)
-  ) {
+  if (value.orientations[value.currentIndex] === null) {
     return null
   }
   if (typeof value.studyRevealed !== 'boolean') return null

@@ -78,6 +78,19 @@ test('rozpracovaná relace se obnoví včetně pořadí, orientací a odhalenéh
   deepEqual(loadTrainerState(storage, cardIds), session)
 })
 
+test('přímý skok na kartu obnoví relaci i s nepřidělenými přeskočenými orientacemi', () => {
+  const storage = new MemoryStorage()
+  const session: TrainerState = {
+    ...createSavedSession(),
+    currentIndex: 3,
+    orientations: ['reversed', null, null, 'upright'],
+    studyRevealed: false,
+  }
+
+  equal(saveTrainerState(storage, session), true)
+  deepEqual(loadTrainerState(storage, cardIds), session)
+})
+
 test('uložený pokrok zůstane zachovaný při přepnutí režimu', () => {
   const session = createSavedSession()
   const browsing = changeTrainerMode(session, 'browse')

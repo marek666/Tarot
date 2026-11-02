@@ -57,12 +57,12 @@ test('Cesta Blázna umožní navigaci, výběr kapitoly, význam a návrat', asy
   await expect(page.locator('.progress')).toHaveText('1/22')
   await page.getByRole('button', { name: 'Další →' }).click()
 
-  await page.locator('.chapter-picker > summary').click()
-  await page.getByRole('button', { name: /IX Poustevník/ }).click()
+  await page.getByRole('button', { name: /Vybrat kapitolu/ }).click()
+  await page.locator('.picker-card[data-card-id="major-09-hermit"]').click()
   await expect(page.locator('.progress')).toHaveText('10/22')
   await expect(page.locator('figure img')).toHaveAttribute('src', '/cards/major-09-hermit.jpg')
 
-  await page.getByRole('button', { name: 'Klasický význam karty' }).click()
+  await page.getByRole('button', { name: 'Otevřít klasický význam' }).click()
   await expect(page.getByText('Poustevník — přímá poloha')).toBeVisible()
   await expect(page.locator('.progress')).toHaveText('10/22')
 
@@ -74,8 +74,8 @@ test('Cesta Blázna umožní navigaci, výběr kapitoly, význam a návrat', asy
 test('rozečtená kapitola a nejvyšší postup přežijí reload i přepnutí režimu', async ({ page }) => {
   await openFreshApp(page)
   await page.getByRole('button', { name: 'Cesta Blázna' }).click()
-  await page.locator('.chapter-picker > summary').click()
-  await page.getByRole('button', { name: /XIV Mírnost/ }).click()
+  await page.getByRole('button', { name: /Vybrat kapitolu/ }).click()
+  await page.locator('.picker-card[data-card-id="major-14-temperance"]').click()
   await expect(page.locator('.progress')).toHaveText('15/22')
 
   await page.getByRole('button', { name: 'Prohlížení' }).click()
@@ -127,7 +127,9 @@ test('Cesta Blázna zůstane dostupná offline', async ({ page, context }) => {
 
 for (const viewport of [
   { width: 320, height: 720 },
-  { width: 430, height: 932 },
+  { width: 390, height: 844 },
+  { width: 768, height: 1024 },
+  { width: 1280, height: 900 },
   { width: 1440, height: 1000 },
 ]) {
   test(`Cesta Blázna se vejde do viewportu ${viewport.width} px`, async ({ page }) => {
@@ -145,3 +147,18 @@ for (const viewport of [
     expect(undersized).toEqual([])
   })
 }
+
+test('desktop Cesty Blázna využívá široké dvousloupcové rozložení', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await openFreshApp(page)
+  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+
+  const layout = await page.locator('.chapter-layout').boundingBox()
+  const aside = await page.locator('.chapter-aside').boundingBox()
+  const content = await page.locator('.chapter-content').boundingBox()
+  expect(layout?.width).toBeGreaterThan(900)
+  expect(aside?.x).toBeLessThan(content?.x ?? 0)
+  expect(content?.width).toBeGreaterThan(500)
+  await expect(page.getByRole('heading', { name: 'Příběh' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Návaznost' })).toBeVisible()
+})

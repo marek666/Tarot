@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import AppHeader from './components/AppHeader.svelte'
+  import CardPicker from './components/CardPicker.svelte'
   import FoolsJourney from './components/FoolsJourney.svelte'
   import IosInstallHint from './components/IosInstallHint.svelte'
   import PwaUpdatePrompt from './components/PwaUpdatePrompt.svelte'
@@ -205,12 +206,20 @@
     persistSession()
   }
 
+  function assignOrientationIfNeeded(index: number): void {
+    if (orientations[index] !== null) return
+    const updatedOrientations = [...orientations]
+    updatedOrientations[index] = chooseCardOrientation(reversedEnabled)
+    orientations = updatedOrientations
+  }
+
   function showPrevious(): void {
     if (shuffleEnabled) return
 
     const previousIndex = getPreviousIndex(currentIndex)
     if (previousIndex === currentIndex) return
 
+    assignOrientationIfNeeded(previousIndex)
     currentIndex = previousIndex
     resetCardView()
     persistSession()
@@ -224,12 +233,18 @@
     }
 
     const nextIndex = getNextIndex(currentIndex, deckOrder.length)
-    if (orientations[nextIndex] === null) {
-      const updatedOrientations = [...orientations]
-      updatedOrientations[nextIndex] = chooseCardOrientation(reversedEnabled)
-      orientations = updatedOrientations
-    }
+    assignOrientationIfNeeded(nextIndex)
     currentIndex = nextIndex
+    resetCardView()
+    persistSession()
+  }
+
+  function selectCard(cardId: string): void {
+    const selectedIndex = deckOrder.findIndex((card) => card.id === cardId)
+    if (selectedIndex < 0) return
+
+    assignOrientationIfNeeded(selectedIndex)
+    currentIndex = selectedIndex
     resetCardView()
     persistSession()
   }
@@ -336,7 +351,7 @@
 <svelte:window onkeydown={handleKeyboardNavigation} />
 
 {#if sessionReady}
-<div class="app-shell">
+<div class="app-shell" class:journey-mode={mode === 'journey'}>
   <AppHeader
     progress={headerProgress}
     progressLabel={mode === 'journey' ? 'Kapitola' : 'Pořadí karty'}
@@ -380,7 +395,6 @@
           index={journeyChapterIndex}
           chapters={foolsJourney}
           cards={journeyCards}
-          highestIndex={journeyHighestChapterIndex}
           onSelect={selectJourneyChapter}
           onPrevious={showPreviousJourneyChapter}
           onNext={showNextJourneyChapter}
@@ -397,6 +411,14 @@
           onReset={confirmProgressReset}
         />
       {/if}
+
+      <CardPicker
+        cards={tarotDeck}
+        currentCardId={currentCard.id}
+        onSelect={selectCard}
+        showStudyFilters={mode === 'study'}
+        studyProgress={mode === 'study' ? studyProgress : null}
+      />
 
     <fieldset class="mode-controls">
       <legend class="visually-hidden">Nastavení pořadí a orientace karet</legend>

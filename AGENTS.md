@@ -10,6 +10,7 @@ Tarot Trainer je minimalistická mobilní PWA pro učení tarotových karet. Zac
 - `src/data/tarotDeck.ts` je jediný zdroj obsahu 78 Rider–Waite–Smith karet; `src/data/foolsJourney.ts` obsahuje samostatný výukový příběh odkazující na karty stabilními ID.
 - `src/lib/` obsahuje čistou logiku pořadí, orientace, studia, persistence a validace bez vazby na vykreslování.
 - `src/lib/trainerState.ts` vlastní verzované schéma `localStorage`; migrace nesmí potichu ztratit platný pokrok.
+- `src/components/CardPicker.svelte` je společný modalní výběr karet a kapitol; čisté vyhledávání a filtrování patří do `src/lib/cardPicker.ts`.
 - `src/styles/` obsahuje globální CSS a designové proměnné.
 - `src/types/` obsahuje sdílené TypeScript typy.
 - `public/cards/` obsahuje 78 lokálních public-domain ilustrací; původ dokumentuje `ATTRIBUTION.md`.
@@ -25,6 +26,7 @@ Tarot Trainer je minimalistická mobilní PWA pro učení tarotových karet. Zac
 - Zachovej tmavě modrou paletu, střídmé zlaté akcenty, plné ilustrace bez ořezu a `prefers-reduced-motion`.
 - Obrácená poloha otáčí pouze ilustraci. Název a výklad musí zůstat normálně čitelné a musí používat `reversed` data stejné karty.
 - Shuffle používá Fisher–Yates bez opakování do konce průchodu. Reversed losuje orientaci pouze pro nově rozdanou kartu.
+- Přímý výběr karty musí zachovat stávající pořadí balíčku, přidělené orientace i studijní data; přeskočené karty zůstávají nedotčené.
 - Neměň stabilní ID karet ani klíč `tarot-trainer:state` bez verzované migrace a testu obnovy.
 - Cesta Blázna používá pouze 22 Velkých arkán v pevném pořadí, nereaguje na Shuffle ani Reversed a nesmí duplikovat obrázky nebo klasická kartová data.
 - Nepřidávej balíček kvůli drobné funkci, kterou lze jasně napsat několika řádky. Výjimkou jsou cílené vývojové nástroje, například Playwright pro E2E ověření.
