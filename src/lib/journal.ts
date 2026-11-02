@@ -1,4 +1,5 @@
 import type { JournalEntry, JournalState } from '../types/journal.ts'
+import type { SpreadCardState } from '../types/spread.ts'
 import type { DailyCardState } from '../types/dailyCard.ts'
 import { DAILY_AREAS } from '../types/dailyCard.ts'
 import { SPREAD_LAYOUT_IDS, type ThreeCardSpreadState } from '../types/spread.ts'
@@ -77,7 +78,7 @@ export function journalFromSpread(spread: ThreeCardSpreadState): JournalEntry | 
   return {
     id: crypto.randomUUID(), type: 'spread', createdAt: new Date().toISOString(), note: '',
     area: spread.area, layoutId: spread.layoutId, question: spread.question,
-    cards: spread.cards.map(c => ({ ...c })) as JournalEntry & never,
+    cards: spread.cards.map(c => ({ ...c })) as [SpreadCardState, SpreadCardState, SpreadCardState],
   }
 }
 
