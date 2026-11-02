@@ -38,7 +38,7 @@ test('Prohlížení vybere kartu 65 a zachová ji po reloadu', async ({ page }) 
 
 test('Učení vybere kartu 40 bez změny studijního pokroku', async ({ page }) => {
   await openFreshApp(page)
-  await page.getByRole('button', { name: 'Učení', exact: true }).click()
+  await navigateMode(page, 'Učení')
   const before = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).studyProgress, stateKey)
   await selectCard(page, 'cups-04')
   const after = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).studyProgress, stateKey)
@@ -51,7 +51,7 @@ test('Učení vybere kartu 40 bez změny studijního pokroku', async ({ page }) 
 
 test('Cesta Blázna vybere kapitolu 18 bez přepnutí režimu', async ({ page }) => {
   await openFreshApp(page)
-  await page.getByRole('button', { name: 'Cesta Blázna' }).click()
+  await navigateMode(page, 'Cesta Blázna')
   await page.getByRole('button', { name: /Vybrat kapitolu/ }).click()
   await page.locator('.picker-card[data-card-id="major-17-star"]').click()
 
@@ -81,7 +81,7 @@ test('vyhledávání bez diakritiky a filtry arkán i barev fungují', async ({ 
 
 test('studijní filtry zobrazí Umím, Procvičit a Zbývající', async ({ page }) => {
   await openFreshApp(page)
-  await page.getByRole('button', { name: 'Učení', exact: true }).click()
+  await navigateMode(page, 'Učení')
 
   await page.getByRole('button', { name: 'Odhalit význam' }).click()
   await page.getByRole('button', { name: 'Umím' }).click()
@@ -158,3 +158,13 @@ test('dialog podporuje klávesnici, focus trap, Escape a mobilní bottom sheet',
   expect((desktopBox?.height ?? 901)).toBeLessThanOrEqual(900 * 0.84 + 1)
   await page.keyboard.press('Escape')
 })
+
+async function navigateMode(page: import('@playwright/test').Page, name: string): Promise<void> {
+  const desktop = page.locator('.site-header .desktop-nav').getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true })
+  if (await desktop.isVisible()) {
+    await desktop.click()
+  } else {
+    await page.getByRole('button', { name: 'Otevřít menu' }).click()
+    await page.getByRole('dialog', { name: 'Navigace Tarot Trainer' }).getByRole('button', { name: name === 'Karta dne' ? 'Výklady' : name, exact: true }).click()
+  }
+}
