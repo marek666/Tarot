@@ -28,7 +28,7 @@ test('Karta dne zůstane stejná po reloadu a změna oblasti ji nepřelosuje', a
   await expect(daily).toHaveAttribute('data-orientation', orientation!)
 
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Karta dne', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.desktop-nav button').filter({ hasText: 'Výklady' })).toHaveAttribute('aria-pressed', 'true')
   await expect(daily).toHaveAttribute('data-card-id', cardId!)
   await expect(daily).toHaveAttribute('data-orientation', orientation!)
   await expect(daily).toHaveAttribute('data-area', 'relationships')
