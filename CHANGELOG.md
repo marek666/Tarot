@@ -2,6 +2,23 @@
 
 Všechny podstatné změny projektu jsou evidovány v tomto souboru.
 
+## 0.4.0 — 2026-11-02
+
+### Přidáno
+
+- Tříkaretní výklady jako druhá podzáložka Karty dne bez rozšíření hlavní mobilní navigace.
+- Tři šablony: Minulost / Přítomnost / Možný vývoj, Situace / Překážka / Rada a Já / Druhá strana / Vzájemná dynamika.
+- Bezpečný rovnoměrný los tří unikátních karet ze všech 78 a nezávislé orientace bez zásahu do hlavního balíčku nebo denní karty.
+- Postupné odhalování, odhalení všech karet a volba „Nejdřív vlastní výklad“, která odděluje vlastní úvahu od vzorové interpretace.
+- Deterministická společná interpretace podle převahy Velkých arkán, opakování barev a obrácených karet včetně otevřených reflexních otázek.
+- Samostatné verzované uložení rozpracovaného výkladu v `tarot-trainer:spread`, obnova po reloadu a bezpečné ošetření poškozených či nedostupných dat.
+- Unit testy logiky losu, orientací, persistence a všech pozic a Playwright scénáře pro odhalování, reload, offline provoz, klávesnici, rapid taps a viewporty 320–1920 px.
+
+### Změněno
+
+- Generování náhodných indexů Karty dne a tříkaretních výkladů používá jednu sdílenou Web Crypto implementaci s rejection samplingem bez modulo bias.
+- PWA a datová validace nyní kontrolují také offline přítomnost tříkaretní funkce a všech 5 616 tematických kombinací.
+
 ## 0.3.3 — 2026-11-02
 
 ### Přidáno

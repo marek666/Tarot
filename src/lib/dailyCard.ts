@@ -2,37 +2,16 @@ import type { DailyArea, DailyCardState } from '../types/dailyCard.ts'
 import { DAILY_AREAS } from '../types/dailyCard.ts'
 import type { CardOrientation } from '../types/trainer.ts'
 import type { StorageLike } from './trainerState.ts'
+import {
+  sampleRandomIndex,
+  secureRandomUint32,
+  type RandomUint32Source,
+} from './random.ts'
+
+export type { RandomUint32Source } from './random.ts'
 
 export const DAILY_CARD_STATE_KEY = 'tarot-trainer:daily-card'
 export const DAILY_CARD_STATE_VERSION = 1
-
-const UINT32_RANGE = 0x1_0000_0000
-
-export type RandomUint32Source = () => number
-
-function defaultRandomUint32(): number {
-  const cryptoApi = globalThis.crypto
-  if (cryptoApi?.getRandomValues) {
-    return cryptoApi.getRandomValues(new Uint32Array(1))[0]!
-  }
-
-  return Math.floor(Math.random() * UINT32_RANGE)
-}
-
-function sampleIndex(length: number, randomUint32: RandomUint32Source): number {
-  if (!Number.isInteger(length) || length < 1) {
-    throw new RangeError('Denní kartu nelze vybrat z prázdného balíčku.')
-  }
-
-  const rejectionLimit = Math.floor(UINT32_RANGE / length) * length
-  for (;;) {
-    const value = randomUint32()
-    if (!Number.isInteger(value) || value < 0 || value >= UINT32_RANGE) {
-      throw new RangeError('Zdroj náhody musí vracet celé nezáporné 32bitové číslo.')
-    }
-    if (value < rejectionLimit) return value % length
-  }
-}
 
 export function getLocalDateKey(date: Date = new Date()): string {
   const year = date.getFullYear()
@@ -73,12 +52,12 @@ export function createDailyCardState(
   localDate: string,
   reversedEnabled: boolean,
   area: DailyArea = 'general',
-  randomUint32: RandomUint32Source = defaultRandomUint32,
+  randomUint32: RandomUint32Source = secureRandomUint32,
 ): DailyCardState {
   if (!isValidDateKey(localDate)) throw new RangeError('Datum denní karty není platné.')
 
-  const cardId = cardIds[sampleIndex(cardIds.length, randomUint32)]!
-  const orientation: CardOrientation = reversedEnabled && sampleIndex(2, randomUint32) === 0
+  const cardId = cardIds[sampleRandomIndex(cardIds.length, randomUint32)]!
+  const orientation: CardOrientation = reversedEnabled && sampleRandomIndex(2, randomUint32) === 0
     ? 'reversed'
     : 'upright'
 
@@ -139,7 +118,7 @@ export function loadOrCreateDailyCardState(
   cardIds: readonly string[],
   reversedEnabled: boolean,
   now: Date = new Date(),
-  randomUint32: RandomUint32Source = defaultRandomUint32,
+  randomUint32: RandomUint32Source = secureRandomUint32,
 ): DailyCardState {
   const localDate = getLocalDateKey(now)
   let previousArea: DailyArea = 'general'

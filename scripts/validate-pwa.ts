@@ -78,7 +78,10 @@ match(applicationJavaScript, /Vybrat kartu/, 'Produkční bundle neobsahuje spol
 match(applicationJavaScript, /tarot-trainer:daily-card/, 'Produkční bundle neobsahuje stav Karty dne.')
 match(applicationJavaScript, /Otázka k zamyšlení/, 'Produkční bundle neobsahuje tematické výklady Karty dne.')
 match(applicationJavaScript, /Pouze oblíbené/, 'Produkční bundle neobsahuje filtr oblíbených karet.')
+match(applicationJavaScript, /tarot-trainer:spread/, 'Produkční bundle neobsahuje stav tříkaretního výkladu.')
+match(applicationJavaScript, /Zamíchat a vyložit/, 'Produkční bundle neobsahuje losování tříkaretního výkladu.')
+match(applicationJavaScript, /Jak číst karty společně/, 'Produkční bundle neobsahuje společnou interpretaci tří karet.')
 
 console.log(
-  'PWA: manifest, ikony, aktualizace, česká data, Karta dne, oblíbené, pokrok a všech 78 obrázků jsou ověřené pro offline provoz.',
+  'PWA: manifest, ikony, aktualizace, česká data, Karta dne, tříkaretní výklady, oblíbené, pokrok a všech 78 obrázků jsou ověřené pro offline provoz.',
 )
