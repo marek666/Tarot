@@ -113,6 +113,24 @@ test('změna Reversed během animace upraví aktuální kartu bez resetu relace'
   await expect(page.locator('.meaning-label')).toHaveText('Přímá poloha')
 })
 
+test('zapnutý Reversed obrátí každou kartu při postupném procházení', async ({ page }) => {
+  await openFreshApp(page)
+  await setCardSetting(page, 'Reversed', true)
+
+  for (let position = 1; position <= 12; position += 1) {
+    const card = page.locator('.tarot-card')
+    await expect(card).toHaveAttribute('data-orientation', 'reversed')
+    await expect(card.locator('.card-front img')).toHaveClass(/reversed/)
+
+    await card.locator('.card-stage').tap()
+    await expect(card.locator('.meaning-label')).toHaveText('Obrácená poloha')
+
+    if (position < 12) await nextButton(page).click()
+  }
+
+  await expect(page.locator('.progress')).toHaveText('12/78')
+})
+
 test('Shuffle rozdá všech 78 unikátních karet před novým kolem', async ({ page }) => {
   await openFreshApp(page)
   await setCardSetting(page, 'Shuffle', true)

@@ -15,11 +15,12 @@ Všechny podstatné změny projektu jsou evidovány v tomto souboru.
 
 - Hlavní režimy jsou na desktopu přímo v kompaktní hlavičce; na mobilu je nahrazuje přístupný modalní hamburger s návratem focusu, Escape a zavřením přes backdrop.
 - CardPicker a sbalitelné nastavení Shuffle/Reversed tvoří kompaktní lištu, aktivní nastavení zůstává viditelné i po sbalení a oblíbená hvězda je u názvu karty.
+- Reversed je v Prohlížení a Učení deterministický: zapnutý přepínač obrátí všechny současné i následující karty, vypnutý je vrátí do přímé polohy. Nezávislé denní a tříkaretní losy zůstávají beze změny.
 - Schéma rozpracovaného tříkaretního výkladu bylo povýšeno na v2. Každý nový los dostává uložené 128bitové ID relace a čas vzniku; stav v1 se automaticky migruje bez změny karet, orientací nebo odhalení.
 
 ### Opraveno
 
-- Rozbalené nastavení Shuffle/Reversed je znovu široký inline panel pod výběrem karty; na desktopu se již netlačí do úzkého překryvného menu.
+- Výběr karty a rozbalitelné nastavení tvoří na velkém desktopu širokou dvousloupcovou lištu; přepínače Shuffle/Reversed zůstávají čitelné, nepřekrývají kartu a na mobilu se skládají pod sebe.
 - Dvě nezávislá vyložení stejných karet už nekolidují v deníku, zatímco opakované uložení stejné relace nevytvoří duplicitu.
 - Neuloženou poznámku nelze tiše ztratit při návratu, přepnutí podzáložky, změně režimu ani zavření stránky.
 - Import nad limitem se celý odmítne, poškozená lokální data se nepřepíší a chyby nedostupného či zaplněného úložiště se zobrazí bez pádu aplikace.

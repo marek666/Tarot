@@ -39,7 +39,7 @@ function createSavedSession(): TrainerState {
     reversedEnabled: true,
     deckOrderIds: ['c', 'a', 'd', 'b'],
     currentIndex: 2,
-    orientations: ['reversed', 'upright', 'reversed', null],
+    orientations: ['reversed', 'reversed', 'reversed', null],
     studyRevealed: true,
     studyProgress: {
       knownCardIds: ['a'],
@@ -84,7 +84,7 @@ test('přímý skok na kartu obnoví relaci i s nepřidělenými přeskočenými
   const session: TrainerState = {
     ...createSavedSession(),
     currentIndex: 3,
-    orientations: ['reversed', null, null, 'upright'],
+    orientations: ['reversed', null, null, 'reversed'],
     studyRevealed: false,
   }
 
@@ -116,6 +116,22 @@ test('stav verze 0.2.x se migruje bez ztráty studijních dat', () => {
   equal(migrated.studyProgressExpanded, false)
   deepEqual(migrated.favoriteCardIds, [])
   equal(migrated.journeyChapterIndex, 0)
+})
+
+test('uložený 50% Reversed stav se při načtení sjednotí bez ztráty relace', () => {
+  const storage = new MemoryStorage()
+  const legacyOrientationMix = {
+    ...createSavedSession(),
+    orientations: ['upright', 'reversed', 'upright', null],
+  }
+  storage.setItem(TRAINER_STATE_KEY, JSON.stringify(legacyOrientationMix))
+
+  const restored = loadTrainerState(storage, cardIds)
+
+  deepEqual(restored.orientations, ['reversed', 'reversed', 'reversed', null])
+  deepEqual(restored.studyProgress, legacyOrientationMix.studyProgress)
+  deepEqual(restored.deckOrderIds, legacyOrientationMix.deckOrderIds)
+  equal(restored.currentIndex, legacyOrientationMix.currentIndex)
 })
 
 test('samostatný postup Cestou Blázna a stav panelu se obnoví', () => {
@@ -182,4 +198,5 @@ test('staré nastavení Shuffle a Reversed se převede při první obnově', () 
   equal(restored.shuffleEnabled, true)
   equal(restored.reversedEnabled, true)
   equal(restored.mode, 'browse')
+  equal(restored.orientations[0], 'reversed')
 })

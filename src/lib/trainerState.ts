@@ -139,12 +139,18 @@ function parseSessionFields(
   const studyProgress = parseStudyProgress(value.studyProgress, new Set(validCardIds))
   if (!studyProgress) return null
 
+  const orientations = (value.orientations as Array<CardOrientation | null>).map(
+    (orientation): CardOrientation | null => orientation === null
+      ? null
+      : value.reversedEnabled ? 'reversed' : 'upright',
+  )
+
   return {
     shuffleEnabled: value.shuffleEnabled,
     reversedEnabled: value.reversedEnabled,
     deckOrderIds: [...value.deckOrderIds],
     currentIndex: value.currentIndex,
-    orientations: [...value.orientations] as Array<CardOrientation | null>,
+    orientations,
     studyRevealed: value.studyRevealed,
     studyProgress,
   }
@@ -155,7 +161,9 @@ export function createDefaultTrainerState(
   settings: InitialSettings = {},
 ): TrainerState {
   const orientations: Array<CardOrientation | null> = Array(cardIds.length).fill(null)
-  if (orientations.length > 0) orientations[0] = 'upright'
+  if (orientations.length > 0) {
+    orientations[0] = settings.reversedEnabled === true ? 'reversed' : 'upright'
+  }
 
   return {
     version: TRAINER_STATE_VERSION,

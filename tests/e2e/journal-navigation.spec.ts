@@ -51,10 +51,12 @@ test('desktop nabízí režimy přímo v hlavičce a sbalené nastavení karet',
   await expect(settings).not.toHaveAttribute('open', '')
   await setCardSetting(page, 'Shuffle', true)
   await expect(settings.locator('summary')).toHaveAttribute('aria-label', /Shuffle aktivní/)
+  const toolbar = await page.locator('.card-toolbar').boundingBox()
   const controls = await settings.locator('.mode-controls').boundingBox()
   const settingsBox = await settings.boundingBox()
   const cardTitle = await page.locator('.card-title').boundingBox()
-  expect(controls?.width ?? 0).toBeGreaterThanOrEqual(380)
+  expect(toolbar?.width ?? 0).toBeGreaterThanOrEqual(700)
+  expect(controls?.width ?? 0).toBeGreaterThanOrEqual(330)
   expect((cardTitle?.y ?? 0)).toBeGreaterThan((settingsBox?.y ?? 0) + (settingsBox?.height ?? 0))
 })
 

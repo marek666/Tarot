@@ -44,31 +44,22 @@ test('vypnutý Shuffle zachová tradiční pořadí v nové kopii', () => {
   equal(order === source, false)
 })
 
-test('vypnutý Reversed vždy vrátí přímou polohu bez losování', () => {
-  equal(
-    chooseCardOrientation(false, () => {
-      throw new Error('Generátor se při vypnutém Reversed nemá volat')
-    }),
-    'upright',
-  )
+test('vypnutý Reversed vždy vrátí přímou polohu', () => {
+  equal(chooseCardOrientation(false), 'upright')
 })
 
-test('Reversed používá přesnou hranici 50 %', () => {
-  equal(chooseCardOrientation(true, () => 0), 'reversed')
-  equal(chooseCardOrientation(true, () => 0.499_999), 'reversed')
-  equal(chooseCardOrientation(true, () => 0.5), 'upright')
-  equal(chooseCardOrientation(true, () => 0.999_999), 'upright')
+test('zapnutý Reversed vždy vrátí obrácenou polohu', () => {
+  equal(chooseCardOrientation(true), 'reversed')
 })
 
 test('neplatný výstup generátoru je odmítnut', () => {
   throws(() => shuffleDeck([1, 2], () => 1), RangeError)
-  throws(() => chooseCardOrientation(true, () => -0.1), RangeError)
 })
 
-test('zapnutí Reversed obrátí aktuální kartu bez změny ostatních orientací', () => {
+test('zapnutí Reversed obrátí všechny již rozdané karty', () => {
   const source = ['upright', 'upright', null] as const
 
-  deepEqual(applyReversedSetting(source, 1, true), ['upright', 'reversed', null])
+  deepEqual(applyReversedSetting(source, 1, true), ['reversed', 'reversed', null])
   deepEqual(source, ['upright', 'upright', null])
 })
 

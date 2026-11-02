@@ -28,7 +28,7 @@ Tarot Trainer je minimalistická mobilní PWA pro učení tarotových karet. Zac
 - Styluj mobile-first od 320 px, bez pevných výšek stránky. Respektuj safe-area insets, 44×44 px dotykové cíle a viditelné focus stavy.
 - Zachovej tmavě modrou paletu, střídmé zlaté akcenty, plné ilustrace bez ořezu a `prefers-reduced-motion`.
 - Obrácená poloha otáčí pouze ilustraci. Název a výklad musí zůstat normálně čitelné a musí používat `reversed` data stejné karty.
-- Shuffle používá Fisher–Yates bez opakování do konce průchodu. Reversed losuje orientaci pouze pro nově rozdanou kartu.
+- Shuffle používá Fisher–Yates bez opakování do konce průchodu. V Prohlížení a Učení znamená Reversed ON obrácenou polohu všech karet a OFF pouze přímou polohu; denní karta a tříkaretní výklad mají vlastní jednou vylosované orientace.
 - Přímý výběr karty musí zachovat stávající pořadí balíčku, přidělené orientace i studijní data; přeskočené karty zůstávají nedotčené.
 - Neměň stabilní ID karet ani klíč `tarot-trainer:state` bez verzované migrace a testu obnovy.
 - Cesta Blázna používá pouze 22 Velkých arkán v pevném pořadí, nereaguje na Shuffle ani Reversed a nesmí duplikovat obrázky nebo klasická kartová data.

@@ -5,7 +5,7 @@ Minimalistická mobile-first PWA pro učení všech 78 karet Rider–Waite–Smi
 ## Co aplikace umí
 
 - Prohlížení karet v tradičním pořadí nebo bez opakování po Fisher–Yates zamíchání.
-- Volitelný Reversed režim: každá nově rozdaná karta má nezávisle 50% šanci na obrácenou polohu; obrázek se otočí a výklad zůstane čitelný.
+- Volitelný Reversed režim v Prohlížení a Učení: zapnutý přepínač drží všechny karty v obrácené poloze, vypnutý pouze v přímé; obrázek se otočí a výklad zůstane čitelný. Karta dne a tříkaretní výklady si ukládají vlastní jednou vylosovanou orientaci.
 - Plynulé 3D otočení, navigaci tlačítky, vodorovným swipem a klávesami se zohledněním `prefers-reduced-motion`.
 - Režim Učení s odhalením významu a volbou „Umím“ nebo „Procvičit“.
 - Režim Cesta Blázna: souvislý výukový příběh všech 22 Velkých arkán se symbolikou, lekcemi a klasickým významem karty.

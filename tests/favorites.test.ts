@@ -13,7 +13,7 @@ test('oblíbené se zapínají a vypínají podle stabilního ID bez duplicit', 
   assert.deepEqual(toggleFavoriteCard(two, ids[0]!), [ids[1]])
 })
 
-test('stav v2 se zmigruje na v3 a zachová data i výběr karty', () => {
+test('stav v2 se zmigruje na v3, zachová výběr a sjednotí orientaci s Reversed', () => {
   const saved = createDefaultTrainerState(ids)
   const v2 = {
     ...saved,
@@ -32,7 +32,7 @@ test('stav v2 se zmigruje na v3 a zachová data i výběr karty', () => {
   const restored = loadTrainerState(storage, ids)
   assert.equal(restored.version, 3)
   assert.equal(restored.currentIndex, 1)
-  assert.equal(restored.orientations[1], 'reversed')
+  assert.equal(restored.orientations[1], 'upright')
   assert.equal(restored.journeyChapterIndex, 5)
   assert.deepEqual(restored.favoriteCardIds, [])
   restored.favoriteCardIds = [ids[1]!]

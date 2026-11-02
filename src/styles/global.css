@@ -74,7 +74,7 @@ h2 {
 
 @media (min-width: 900px) {
   .app-shell:not(.journey-mode):not(.daily-mode) {
-    width: min(100%, 46rem);
+    width: min(100%, 64rem);
   }
 
   .app-shell:not(.journey-mode):not(.daily-mode) :is(
@@ -169,6 +169,17 @@ h2 {
   border: 0;
 }
 
+.card-toolbar {
+  width: min(100%, 25rem);
+  display: grid;
+  gap: 0.65rem;
+}
+
+.card-toolbar .picker-trigger,
+.compact-settings {
+  width: 100%;
+}
+
 .compact-settings {
   width: min(100%, 25rem);
   background: var(--surface);
@@ -182,11 +193,31 @@ h2 {
   color: var(--gold);
   font-size: 0.78rem;
   font-weight: 700;
+  display: list-item;
+  align-content: center;
+  place-self: center;
 }
 .compact-settings > summary:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .compact-settings .mode-controls {
   width: 100%;
   padding: 0 0.6rem 0.6rem;
+}
+
+@media (min-width: 1100px) {
+  .card-toolbar {
+    width: min(50vw, 60rem);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .card-toolbar .compact-settings {
+    width: 100%;
+  }
+
+  .compact-settings .mode-toggle {
+    min-height: 46px;
+    padding: 0.5rem 0.6rem;
+  }
 }
 
 .trainer-mode-switch {

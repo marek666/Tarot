@@ -34,10 +34,8 @@ export function createDeckOrder<T>(
 
 export function chooseCardOrientation(
   reversedEnabled: boolean,
-  random: RandomSource = Math.random,
 ): CardOrientation {
-  if (!reversedEnabled) return 'upright'
-  return sampleRandom(random) < 0.5 ? 'reversed' : 'upright'
+  return reversedEnabled ? 'reversed' : 'upright'
 }
 
 export function applyReversedSetting(
@@ -49,11 +47,11 @@ export function applyReversedSetting(
     throw new RangeError('Index aktuální karty je mimo rozsah orientací.')
   }
 
-  const updated = enabled
-    ? [...orientations]
-    : orientations.map(
-        (orientation): CardOrientation | null => orientation === null ? null : 'upright',
-      )
+  const updated = orientations.map(
+    (orientation): CardOrientation | null => orientation === null
+      ? null
+      : enabled ? 'reversed' : 'upright',
+  )
 
   updated[currentIndex] = enabled ? 'reversed' : 'upright'
   return updated
