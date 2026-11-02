@@ -5,6 +5,7 @@
   import DailyCard from './components/DailyCard.svelte'
   import FoolsJourney from './components/FoolsJourney.svelte'
   import IosInstallHint from './components/IosInstallHint.svelte'
+  import ReadingJournal from './components/ReadingJournal.svelte'
   import PwaUpdatePrompt from './components/PwaUpdatePrompt.svelte'
   import StudyProgressPanel from './components/StudyProgressPanel.svelte'
   import TarotCard from './components/TarotCard.svelte'
@@ -25,6 +26,8 @@
   } from './lib/dailyCard.ts'
   import { getDailyInterpretation } from './lib/dailyInterpretation.ts'
   import { toggleFavoriteCard } from './lib/favorites.ts'
+  import { addJournalEntry, deleteJournalEntry, journalFromDaily, journalFromSpread, mergeJournal, parseJournal, readJournal, updateJournalNote, writeJournal, JOURNAL_LIMIT } from './lib/journal.ts'
+  import type { JournalState } from './types/journal.ts'
   import {
     clearSpreadCards,
     createDefaultSpreadState,
@@ -96,7 +99,9 @@
   let journeyChapterIndex = $state(0)
   let journeyHighestChapterIndex = $state(0)
   let dailyCardState = $state<DailyCardState | null>(null)
-  let dailyView = $state<'daily' | 'spread'>('daily')
+  let dailyView = $state<'daily' | 'spread' | 'journal'>('daily')
+  let journalState = $state<JournalState>({ version: 1, entries: [] })
+  let journalError = $state('')
   let spreadState = $state<ThreeCardSpreadState>(createDefaultSpreadState())
   let sessionReady = $state(false)
   let storageReady = false
@@ -110,7 +115,7 @@
   const headerProgress = $derived(
     mode === 'journey'
       ? `${journeyChapterIndex + 1}/${foolsJourney.length}`
-      : mode === 'daily' ? dailyView === 'daily' ? 'Dnes' : '3 karty' : traversalProgress,
+      : mode === 'daily' ? dailyView === 'daily' ? 'Dnes' : dailyView === 'spread' ? '3 karty' : 'Deník' : traversalProgress,
   )
   const currentJourneyChapter = $derived(foolsJourney[journeyChapterIndex]!)
   const currentJourneyCard = $derived(journeyCards[journeyChapterIndex]!)
@@ -290,6 +295,56 @@
   function updateDailyArea(area: DailyArea): void {
     if (!dailyCardState || dailyCardState.area === area) return
     dailyCardState = changeDailyArea(browserStorage, dailyCardState, area)
+  }
+
+  function persistJournal(next: JournalState): boolean {
+    if (!writeJournal(browserStorage, next)) { journalError = 'Uložení selhalo. Zkontrolujte místo a oprávnění úložiště.'; return false }
+    journalState = next
+    journalError = ''
+    return true
+  }
+
+  function saveDailyToJournal(): void {
+    if (!dailyCardState) return
+    const entry = journalFromDaily(dailyCardState)
+    const found = journalState.entries.find(e => e.id === entry.id)
+    if (found && !window.confirm('Karta dne už je uložená. Aktualizovat její uloženou podobu a zachovat poznámku?')) return
+    if (!found && journalState.entries.length >= JOURNAL_LIMIT) { journalError = 'Deník je plný (100 záznamů).'; return }
+    persistJournal(addJournalEntry(journalState, { ...entry, note: found?.note ?? '' }))
+  }
+
+  function saveSpreadToJournal(): void {
+    const entry = journalFromSpread(spreadState)
+    if (!entry) return
+    if (journalState.entries.length >= JOURNAL_LIMIT) { journalError = 'Deník je plný (100 záznamů).'; return }
+    persistJournal(addJournalEntry(journalState, entry))
+  }
+
+  function saveJournalNote(id: string, note: string): boolean {
+    return persistJournal(updateJournalNote(journalState, id, note))
+  }
+
+  function removeJournalEntry(id: string): void {
+    persistJournal(deleteJournalEntry(journalState, id))
+  }
+
+  function exportJournal(): void {
+    const blob = new Blob([JSON.stringify(journalState, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'tarot-trainer-denik.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function importJournal(raw: string): void {
+    const imported = raw.length <= 1024 * 1024 ? parseJournal(raw, deckIds) : null
+    if (!imported) { journalError = 'Soubor není platným deníkem Tarot Trainer.'; return }
+    const merged = mergeJournal(journalState, imported)
+    const added = merged.entries.length - journalState.entries.length
+    if (!window.confirm(`Importovat ${imported.entries.length} záznamů? Nových: ${Math.max(0,added)}. Existující záznamy zůstanou zachované.`)) return
+    persistJournal(merged)
   }
 
   function persistSpread(): void {
@@ -488,6 +543,7 @@
     journeyHighestChapterIndex = restored.journeyHighestChapterIndex
     refreshDailyCard()
     spreadState = loadSpreadState(browserStorage, deckIds, reversedEnabled)
+    journalState = readJournal(browserStorage, deckIds)
     storageReady = true
 
     if (!hadStoredState) {
@@ -533,7 +589,7 @@
     progress={headerProgress}
     progressLabel={mode === 'journey'
       ? 'Kapitola'
-      : mode === 'daily' ? dailyView === 'daily' ? 'Karta dne' : 'Tříkaretní výklad' : 'Pořadí karty'}
+      : mode === 'daily' ? dailyView === 'daily' ? 'Karta dne' : dailyView === 'spread' ? 'Tříkaretní výklad' : 'Deník' : 'Pořadí karty'}
   />
 
   <main class="trainer">
@@ -575,7 +631,7 @@
     <IosInstallHint />
 
     {#if mode === 'daily' && dailyCardState}
-      <div class="daily-subtabs" role="tablist" aria-label="Denní a tříkaretní výklady">
+      <div class="daily-subtabs" role="tablist" aria-label="Výklady a deník">
         <button
           type="button"
           role="tab"
@@ -596,7 +652,10 @@
         >
           Tři karty
         </button>
+        <button type="button" role="tab" aria-label="Podzáložka Deník" aria-selected={dailyView === 'journal'} class:active={dailyView === 'journal'} onclick={() => dailyView = 'journal'}>Deník</button>
       </div>
+
+      {#if journalError}<p class="journal-error" role="alert">{journalError}</p>{/if}
 
       {#if dailyView === 'daily'}
         <DailyCard
@@ -608,7 +667,8 @@
           onAreaChange={updateDailyArea}
           onToggleFavorite={() => toggleFavorite(currentDailyCard.id)}
         />
-      {:else}
+        <button type="button" class="save-reading-button" onclick={saveDailyToJournal}>Uložit Kartu dne do deníku</button>
+      {:else if dailyView === 'spread'}
         <ThreeCardSpread
           state={spreadState}
           cards={spreadCards}
@@ -621,6 +681,11 @@
           onRevealInterpretation={showSpreadInterpretation}
           onNewSpread={startNewSpread}
         />
+        {#if spreadState.cards.length === 3 && spreadState.cards.every(c => c.revealed && c.interpretationRevealed)}
+          <button type="button" class="save-reading-button" onclick={saveSpreadToJournal}>Uložit výklad do deníku</button>
+        {/if}
+      {:else}
+        <ReadingJournal journal={journalState} cards={tarotDeck} onNote={saveJournalNote} onDelete={removeJournalEntry} onExport={exportJournal} onImport={importJournal}/>
       {/if}
     {:else if mode === 'journey'}
       {#key journeyChapterIndex}
