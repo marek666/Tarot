@@ -2,6 +2,15 @@
 
 Všechny podstatné změny projektu jsou evidovány v tomto souboru.
 
+## 0.3.3 — připravuje se
+
+### Přidáno
+
+- Oblíbené karty (☆/★) v Prohlížení, Učení i Cestě Blázna; oblíbené jsou nezávislé na studijním hodnocení.
+- Filtr „Pouze oblíbené“ ve společném výběru karet a kapitol.
+- Verzované ukládání oblíbených s migrací v1/v2 → v3 bez ztráty rozpracované relace.
+- Unit testy přidání/odebrání oblíbené karty a migrace uloženého stavu.
+
 ## 0.3.2 — 2026-11-02
 
 ### Změněno
