@@ -528,6 +528,8 @@
   class:daily-mode={mode === 'daily'}
 >
   <AppHeader
+    mode={mode}
+    onModeChange={updateMode}
     progress={headerProgress}
     progressLabel={mode === 'journey'
       ? 'Kapitola'
@@ -535,7 +537,7 @@
   />
 
   <main class="trainer">
-    <div class="trainer-mode-switch" role="group" aria-label="Režim aplikace">
+    {#if false}<div class="trainer-mode-switch" role="group" aria-label="Režim aplikace">
       <button
         type="button"
         class:active={mode === 'browse'}
@@ -568,7 +570,7 @@
       >
         Karta dne
       </button>
-    </div>
+    </div>{/if}
 
     <IosInstallHint />
 
@@ -657,6 +659,8 @@
         favoriteCardIds={favoriteCardIds}
       />
 
+    <details class="compact-settings">
+      <summary>Nastavení karet{shuffleEnabled ? ' · Shuffle' : ''}{reversedEnabled ? ' · Reversed' : ''}</summary>
     <fieldset class="mode-controls">
       <legend class="visually-hidden">Nastavení pořadí a orientace karet</legend>
 
@@ -686,6 +690,7 @@
         <span class="switch" aria-hidden="true"></span>
       </label>
     </fieldset>
+    </details>
 
     <button
       type="button"
