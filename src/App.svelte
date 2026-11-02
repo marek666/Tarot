@@ -412,6 +412,7 @@
           onNext={showNextJourneyChapter}
           onStartOver={() => selectJourneyChapter(0)}
           onExit={exitJourney}
+          favoriteCardIds={favoriteCardIds}
           favorite={favoriteCardIds.includes(currentJourneyCard.id)}
           onToggleFavorite={() => toggleFavorite(currentJourneyCard.id)}
         />
