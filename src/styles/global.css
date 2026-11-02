@@ -170,6 +170,11 @@ h2 {
   border: 0;
 }
 
+.compact-settings { width: min(100%, 25rem); border: 1px solid var(--border); border-radius: 0.8rem; background: var(--surface); }
+.compact-settings > summary { min-height: 44px; padding: 0.7rem 0.85rem; cursor: pointer; color: var(--gold); font-size: 0.78rem; font-weight: 700; }
+.compact-settings > summary:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.compact-settings .mode-controls { width: 100%; padding: 0 0.6rem 0.6rem; }
+
 .trainer-mode-switch {
   width: min(100%, 25rem);
   padding: 0.25rem;
