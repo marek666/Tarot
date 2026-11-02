@@ -15,6 +15,7 @@
     createDeckOrder,
   } from './lib/deckModes.ts'
   import { getNextIndex, getPreviousIndex } from './lib/deckNavigation.ts'
+  import { toggleFavoriteCard } from './lib/favorites.ts'
   import {
     applyStudyRating,
     createEmptyStudyProgress,
@@ -59,6 +60,7 @@
     ...Array<CardOrientation | null>(tarotDeck.length - 1).fill(null),
   ])
   let studyProgress = $state<StudyProgress>(createEmptyStudyProgress())
+  let favoriteCardIds = $state<string[]>([])
   let currentIndex = $state(0)
   let cardViewKey = $state(0)
   let studyRevealed = $state(false)
@@ -108,12 +110,18 @@
       studyProgressExpanded,
       journeyChapterIndex,
       journeyHighestChapterIndex,
+      favoriteCardIds: [...favoriteCardIds],
     }
   }
 
   function persistSession(): void {
     if (!storageReady) return
     saveTrainerState(window.localStorage, createSnapshot())
+  }
+
+  function toggleFavorite(cardId: string): void {
+    favoriteCardIds = toggleFavoriteCard(favoriteCardIds, cardId)
+    persistSession()
   }
 
   function resetCardView(): void {
@@ -328,6 +336,7 @@
     currentIndex = restored.currentIndex
     studyRevealed = restored.studyRevealed
     studyProgress = restored.studyProgress
+    favoriteCardIds = [...restored.favoriteCardIds]
     studyProgressExpanded = restored.studyProgressExpanded
     journeyChapterIndex = restored.journeyChapterIndex
     journeyHighestChapterIndex = restored.journeyHighestChapterIndex
@@ -403,6 +412,8 @@
           onNext={showNextJourneyChapter}
           onStartOver={() => selectJourneyChapter(0)}
           onExit={exitJourney}
+          favorite={favoriteCardIds.includes(currentJourneyCard.id)}
+          onToggleFavorite={() => toggleFavorite(currentJourneyCard.id)}
         />
       {/key}
     {:else}
@@ -421,6 +432,7 @@
         onSelect={selectCard}
         showStudyFilters={mode === 'study'}
         studyProgress={mode === 'study' ? studyProgress : null}
+        favoriteCardIds={favoriteCardIds}
       />
 
     <fieldset class="mode-controls">
@@ -452,6 +464,17 @@
         <span class="switch" aria-hidden="true"></span>
       </label>
     </fieldset>
+
+    <button
+      type="button"
+      class="favorite-toggle"
+      aria-pressed={favoriteCardIds.includes(currentCard.id)}
+      aria-label={favoriteCardIds.includes(currentCard.id) ? `Odebrat ${currentCard.nameCs} z oblíbených` : `Přidat ${currentCard.nameCs} do oblíbených`}
+      onclick={() => toggleFavorite(currentCard.id)}
+    >
+      <span aria-hidden="true">{favoriteCardIds.includes(currentCard.id) ? '★' : '☆'}</span>
+      {favoriteCardIds.includes(currentCard.id) ? 'V oblíbených' : 'Do oblíbených'}
+    </button>
 
     <div class="card-context" aria-live="polite">
       <p>{groupLabel}</p>
