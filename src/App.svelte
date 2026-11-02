@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import AppHeader from './components/AppHeader.svelte'
   import CardPicker from './components/CardPicker.svelte'
+  import DailyCard from './components/DailyCard.svelte'
   import FoolsJourney from './components/FoolsJourney.svelte'
   import IosInstallHint from './components/IosInstallHint.svelte'
   import PwaUpdatePrompt from './components/PwaUpdatePrompt.svelte'
@@ -16,6 +17,14 @@
   } from './lib/deckModes.ts'
   import { getNextIndex, getPreviousIndex } from './lib/deckNavigation.ts'
   import {
+    changeDailyArea,
+    formatLocalDateLabel,
+    getLocalDateKey,
+    loadOrCreateDailyCardState,
+  } from './lib/dailyCard.ts'
+  import { getDailyInterpretation } from './lib/dailyInterpretation.ts'
+  import { toggleFavoriteCard } from './lib/favorites.ts'
+  import {
     applyStudyRating,
     createEmptyStudyProgress,
     createStudyOrder,
@@ -28,7 +37,9 @@
     TRAINER_STATE_VERSION,
     loadTrainerState,
     saveTrainerState,
+    type StorageLike,
   } from './lib/trainerState.ts'
+  import type { DailyArea, DailyCardState } from './types/dailyCard.ts'
   import type { TarotCard as TarotCardData, TarotSuit } from './types/tarot.ts'
   import type {
     CardOrientation,
@@ -59,14 +70,17 @@
     ...Array<CardOrientation | null>(tarotDeck.length - 1).fill(null),
   ])
   let studyProgress = $state<StudyProgress>(createEmptyStudyProgress())
+  let favoriteCardIds = $state<string[]>([])
   let currentIndex = $state(0)
   let cardViewKey = $state(0)
   let studyRevealed = $state(false)
   let studyProgressExpanded = $state(false)
   let journeyChapterIndex = $state(0)
   let journeyHighestChapterIndex = $state(0)
+  let dailyCardState = $state<DailyCardState | null>(null)
   let sessionReady = $state(false)
   let storageReady = false
+  let browserStorage: StorageLike | null = null
   let revealButton = $state<HTMLButtonElement>()
   let practiceButton = $state<HTMLButtonElement>()
 
@@ -74,7 +88,9 @@
   const currentOrientation = $derived(orientations[currentIndex] ?? 'upright')
   const traversalProgress = $derived(`${currentIndex + 1}/${deckOrder.length}`)
   const headerProgress = $derived(
-    mode === 'journey' ? `${journeyChapterIndex + 1}/${foolsJourney.length}` : traversalProgress,
+    mode === 'journey'
+      ? `${journeyChapterIndex + 1}/${foolsJourney.length}`
+      : mode === 'daily' ? 'Dnes' : traversalProgress,
   )
   const currentJourneyChapter = $derived(foolsJourney[journeyChapterIndex]!)
   const currentJourneyCard = $derived(journeyCards[journeyChapterIndex]!)
@@ -87,6 +103,19 @@
   )
   const studySummary = $derived(
     getStudyProgressSummary(studyProgress, tarotDeck.length),
+  )
+  const currentDailyCard = $derived(
+    cardsById.get(dailyCardState?.cardId ?? deckIds[0]!) ?? tarotDeck[0]!,
+  )
+  const dailyInterpretation = $derived(
+    getDailyInterpretation(
+      currentDailyCard,
+      dailyCardState?.orientation ?? 'upright',
+      dailyCardState?.area ?? 'general',
+    ),
+  )
+  const dailyDateLabel = $derived(
+    formatLocalDateLabel(dailyCardState?.localDate ?? getLocalDateKey()),
   )
 
   function createSnapshot(): TrainerState {
@@ -108,12 +137,18 @@
       studyProgressExpanded,
       journeyChapterIndex,
       journeyHighestChapterIndex,
+      favoriteCardIds: [...favoriteCardIds],
     }
   }
 
   function persistSession(): void {
-    if (!storageReady) return
-    saveTrainerState(window.localStorage, createSnapshot())
+    if (!storageReady || !browserStorage) return
+    saveTrainerState(browserStorage, createSnapshot())
+  }
+
+  function toggleFavorite(cardId: string): void {
+    favoriteCardIds = toggleFavoriteCard(favoriteCardIds, cardId)
+    persistSession()
   }
 
   function resetCardView(): void {
@@ -143,14 +178,15 @@
   function updateMode(nextMode: TrainerMode): void {
     if (mode === nextMode) return
 
-    if (nextMode === 'journey') {
-      previousMode = mode === 'journey' ? previousMode : mode
-      mode = 'journey'
+    if (nextMode === 'journey' || nextMode === 'daily') {
+      if (mode === 'browse' || mode === 'study') previousMode = mode
+      if (nextMode === 'daily') refreshDailyCard()
+      mode = nextMode
       persistSession()
       return
     }
 
-    if (mode === 'journey') {
+    if (mode === 'journey' || mode === 'daily') {
       mode = nextMode
       previousMode = nextMode
       if (nextMode === 'browse') studyRevealed = false
@@ -196,6 +232,22 @@
   function toggleStudyProgress(): void {
     studyProgressExpanded = !studyProgressExpanded
     persistSession()
+  }
+
+  function refreshDailyCard(now: Date = new Date()): void {
+    const currentDate = getLocalDateKey(now)
+    if (dailyCardState?.localDate === currentDate) return
+    dailyCardState = loadOrCreateDailyCardState(
+      browserStorage,
+      deckIds,
+      reversedEnabled,
+      now,
+    )
+  }
+
+  function updateDailyArea(area: DailyArea): void {
+    if (!dailyCardState || dailyCardState.area === area) return
+    dailyCardState = changeDailyArea(browserStorage, dailyCardState, area)
   }
 
   function updateShuffle(enabled: boolean): void {
@@ -287,6 +339,8 @@
     const target = event.target as HTMLElement | null
     if (target?.closest('details, input, textarea, select')) return
 
+    if (mode === 'daily') return
+
     if (mode === 'journey') {
       if (event.key === 'ArrowLeft' && journeyChapterIndex > 0) {
         event.preventDefault()
@@ -311,14 +365,27 @@
   }
 
   onMount(() => {
+    try {
+      browserStorage = window.localStorage
+    } catch {
+      browserStorage = null
+    }
+
+    const fallbackStorage: StorageLike = {
+      getItem: () => null,
+      setItem: () => undefined,
+      removeItem: () => undefined,
+    }
     let hadStoredState = false
     try {
-      hadStoredState = window.localStorage.getItem(TRAINER_STATE_KEY) !== null
+      hadStoredState = browserStorage
+        ? browserStorage.getItem(TRAINER_STATE_KEY) !== null
+        : false
     } catch {
       // Nedostupné úložiště nesmí zabránit spuštění aplikace.
     }
 
-    const restored = loadTrainerState(window.localStorage, deckIds)
+    const restored = loadTrainerState(browserStorage ?? fallbackStorage, deckIds)
     mode = restored.mode
     previousMode = restored.previousMode
     shuffleEnabled = restored.shuffleEnabled
@@ -328,9 +395,11 @@
     currentIndex = restored.currentIndex
     studyRevealed = restored.studyRevealed
     studyProgress = restored.studyProgress
+    favoriteCardIds = [...restored.favoriteCardIds]
     studyProgressExpanded = restored.studyProgressExpanded
     journeyChapterIndex = restored.journeyChapterIndex
     journeyHighestChapterIndex = restored.journeyHighestChapterIndex
+    refreshDailyCard()
     storageReady = true
 
     if (!hadStoredState) {
@@ -341,6 +410,17 @@
     }
 
     sessionReady = true
+
+    const refreshAfterResume = (): void => {
+      if (document.visibilityState === 'visible') refreshDailyCard()
+    }
+    document.addEventListener('visibilitychange', refreshAfterResume)
+    window.addEventListener('focus', refreshAfterResume)
+
+    return () => {
+      document.removeEventListener('visibilitychange', refreshAfterResume)
+      window.removeEventListener('focus', refreshAfterResume)
+    }
   })
 </script>
 
@@ -354,10 +434,14 @@
 <svelte:window onkeydown={handleKeyboardNavigation} />
 
 {#if sessionReady}
-<div class="app-shell" class:journey-mode={mode === 'journey'}>
+<div
+  class="app-shell"
+  class:journey-mode={mode === 'journey'}
+  class:daily-mode={mode === 'daily'}
+>
   <AppHeader
     progress={headerProgress}
-    progressLabel={mode === 'journey' ? 'Kapitola' : 'Pořadí karty'}
+    progressLabel={mode === 'journey' ? 'Kapitola' : mode === 'daily' ? 'Karta dne' : 'Pořadí karty'}
   />
 
   <main class="trainer">
@@ -386,11 +470,29 @@
       >
         Cesta Blázna
       </button>
+      <button
+        type="button"
+        class:active={mode === 'daily'}
+        aria-pressed={mode === 'daily'}
+        onclick={() => updateMode('daily')}
+      >
+        Karta dne
+      </button>
     </div>
 
     <IosInstallHint />
 
-    {#if mode === 'journey'}
+    {#if mode === 'daily' && dailyCardState}
+      <DailyCard
+        card={currentDailyCard}
+        state={dailyCardState}
+        dateLabel={dailyDateLabel}
+        interpretation={dailyInterpretation}
+        favorite={favoriteCardIds.includes(currentDailyCard.id)}
+        onAreaChange={updateDailyArea}
+        onToggleFavorite={() => toggleFavorite(currentDailyCard.id)}
+      />
+    {:else if mode === 'journey'}
       {#key journeyChapterIndex}
         <FoolsJourney
           chapter={currentJourneyChapter}
@@ -403,6 +505,9 @@
           onNext={showNextJourneyChapter}
           onStartOver={() => selectJourneyChapter(0)}
           onExit={exitJourney}
+          favoriteCardIds={favoriteCardIds}
+          favorite={favoriteCardIds.includes(currentJourneyCard.id)}
+          onToggleFavorite={() => toggleFavorite(currentJourneyCard.id)}
         />
       {/key}
     {:else}
@@ -421,6 +526,7 @@
         onSelect={selectCard}
         showStudyFilters={mode === 'study'}
         studyProgress={mode === 'study' ? studyProgress : null}
+        favoriteCardIds={favoriteCardIds}
       />
 
     <fieldset class="mode-controls">
@@ -452,6 +558,17 @@
         <span class="switch" aria-hidden="true"></span>
       </label>
     </fieldset>
+
+    <button
+      type="button"
+      class="favorite-toggle"
+      aria-pressed={favoriteCardIds.includes(currentCard.id)}
+      aria-label={favoriteCardIds.includes(currentCard.id) ? `Odebrat ${currentCard.nameCs} z oblíbených` : `Přidat ${currentCard.nameCs} do oblíbených`}
+      onclick={() => toggleFavorite(currentCard.id)}
+    >
+      <span aria-hidden="true">{favoriteCardIds.includes(currentCard.id) ? '★' : '☆'}</span>
+      {favoriteCardIds.includes(currentCard.id) ? 'V oblíbených' : 'Do oblíbených'}
+    </button>
 
     <div class="card-context" aria-live="polite">
       <p>{groupLabel}</p>

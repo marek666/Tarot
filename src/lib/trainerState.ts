@@ -8,7 +8,7 @@ import type {
   TrainerState,
 } from '../types/trainer.ts'
 
-export const TRAINER_STATE_VERSION = 2
+export const TRAINER_STATE_VERSION = 3
 export const TRAINER_STATE_KEY = 'tarot-trainer:state'
 export const LEGACY_SETTINGS_KEY = 'tarot-trainer:settings'
 const JOURNEY_CHAPTER_COUNT = 22
@@ -171,6 +171,7 @@ export function createDefaultTrainerState(
     studyProgressExpanded: false,
     journeyChapterIndex: 0,
     journeyHighestChapterIndex: 0,
+    favoriteCardIds: [],
   }
 }
 
@@ -195,11 +196,17 @@ export function parseTrainerState(
         studyProgressExpanded: false,
         journeyChapterIndex: 0,
         journeyHighestChapterIndex: 0,
+        favoriteCardIds: [],
       }
     }
 
-    if (value.version !== TRAINER_STATE_VERSION) return null
-    if (value.mode !== 'browse' && value.mode !== 'study' && value.mode !== 'journey') return null
+    if (value.version !== 2 && value.version !== TRAINER_STATE_VERSION) return null
+    if (
+      value.mode !== 'browse' &&
+      value.mode !== 'study' &&
+      value.mode !== 'journey' &&
+      value.mode !== 'daily'
+    ) return null
     if (value.previousMode !== 'browse' && value.previousMode !== 'study') return null
     const fields = parseSessionFields(value, validCardIds, value.mode)
     if (!fields || typeof value.studyProgressExpanded !== 'boolean') return null
@@ -216,6 +223,15 @@ export function parseTrainerState(
       return null
     }
 
+    // Migrace v2 -> v3 zachová celou relaci a přidá prázdné oblíbené.
+    // Poškozené oblíbené ve v3 nesmí nepozorovaně zničit ostatní pokrok.
+    const favoriteCardIds = value.version === 2
+      ? []
+      : isStringArray(value.favoriteCardIds) &&
+          hasOnlyValidUniqueIds(value.favoriteCardIds, new Set(validCardIds))
+        ? [...value.favoriteCardIds]
+        : []
+
     return {
       version: TRAINER_STATE_VERSION,
       mode: value.mode,
@@ -224,6 +240,7 @@ export function parseTrainerState(
       studyProgressExpanded: value.studyProgressExpanded,
       journeyChapterIndex: value.journeyChapterIndex,
       journeyHighestChapterIndex: value.journeyHighestChapterIndex,
+      favoriteCardIds,
     }
   } catch {
     return null
@@ -276,8 +293,10 @@ export function saveTrainerState(storage: StorageLike, state: TrainerState): boo
 }
 
 export function changeTrainerMode(state: TrainerState, mode: TrainerMode): TrainerState {
-  const previousMode: ClassicTrainerMode = mode === 'journey'
-    ? state.mode === 'journey' ? state.previousMode : state.mode
+  const isSpecialMode = (candidate: TrainerMode): candidate is 'journey' | 'daily' =>
+    candidate === 'journey' || candidate === 'daily'
+  const previousMode: ClassicTrainerMode = isSpecialMode(mode)
+    ? isSpecialMode(state.mode) ? state.previousMode : state.mode
     : mode
   return { ...state, mode, previousMode }
 }

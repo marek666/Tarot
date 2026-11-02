@@ -10,6 +10,7 @@ Tarot Trainer je minimalistická mobilní PWA pro učení tarotových karet. Zac
 - `src/data/tarotDeck.ts` je jediný zdroj obsahu 78 Rider–Waite–Smith karet; `src/data/foolsJourney.ts` obsahuje samostatný výukový příběh odkazující na karty stabilními ID.
 - `src/lib/` obsahuje čistou logiku pořadí, orientace, studia, persistence a validace bez vazby na vykreslování.
 - `src/lib/trainerState.ts` vlastní verzované schéma `localStorage`; migrace nesmí potichu ztratit platný pokrok.
+- `src/lib/dailyCard.ts` vlastní oddělený verzovaný denní los; nesmí měnit hlavní balíček, studijní data ani Cestu Blázna.
 - `src/components/CardPicker.svelte` je společný modalní výběr karet a kapitol; čisté vyhledávání a filtrování patří do `src/lib/cardPicker.ts`.
 - `src/styles/` obsahuje globální CSS a designové proměnné.
 - `src/types/` obsahuje sdílené TypeScript typy.
@@ -29,6 +30,7 @@ Tarot Trainer je minimalistická mobilní PWA pro učení tarotových karet. Zac
 - Přímý výběr karty musí zachovat stávající pořadí balíčku, přidělené orientace i studijní data; přeskočené karty zůstávají nedotčené.
 - Neměň stabilní ID karet ani klíč `tarot-trainer:state` bez verzované migrace a testu obnovy.
 - Cesta Blázna používá pouze 22 Velkých arkán v pevném pořadí, nereaguje na Shuffle ani Reversed a nesmí duplikovat obrázky nebo klasická kartová data.
+- Karta dne odkazuje na stabilní ID, drží kartu i orientaci po celý místní kalendářní den a tematická oblast nikdy nespouští nový los.
 - Nepřidávej balíček kvůli drobné funkci, kterou lze jasně napsat několika řádky. Výjimkou jsou cílené vývojové nástroje, například Playwright pro E2E ověření.
 
 ## Tarotová data a PWA
@@ -37,6 +39,7 @@ Tarot Trainer je minimalistická mobilní PWA pro učení tarotových karet. Zac
 - Každý význam má 3–5 konkrétních klíčových slov, stručný český význam a věcný delší výklad. Obrácený význam není automaticky negativní.
 - Při úpravě karet aktualizuj validaci pouze tehdy, pokud se záměrně mění podporovaný datový model.
 - Všechny runtime prostředky musí zůstat lokální a zahrnuté v precache. Nepřidávej externí fonty, obrázky ani API.
+- Denní tematické interpretace musí zůstat statické, konkrétní pro kartu a formulované jako symbolický podnět, nikoli jistá předpověď.
 - Aktualizace service workeru musí zůstat potvrzovaná uživatelem a nesmí mazat `localStorage`.
 
 ## Kontrola změn

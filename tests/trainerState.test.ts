@@ -32,7 +32,7 @@ const cardIds = ['a', 'b', 'c', 'd']
 
 function createSavedSession(): TrainerState {
   return {
-    version: 2,
+    version: 3,
     mode: 'study',
     previousMode: 'study',
     shuffleEnabled: true,
@@ -52,6 +52,7 @@ function createSavedSession(): TrainerState {
     studyProgressExpanded: true,
     journeyChapterIndex: 8,
     journeyHighestChapterIndex: 12,
+    favoriteCardIds: ['b'],
   }
 }
 
@@ -108,11 +109,12 @@ test('stav verze 0.2.x se migruje bez ztráty studijních dat', () => {
 
   const migrated = loadTrainerState(storage, cardIds)
 
-  equal(migrated.version, 2)
+  equal(migrated.version, 3)
   deepEqual(migrated.studyProgress, legacy.studyProgress)
   deepEqual(migrated.deckOrderIds, legacy.deckOrderIds)
   equal(migrated.currentIndex, legacy.currentIndex)
   equal(migrated.studyProgressExpanded, false)
+  deepEqual(migrated.favoriteCardIds, [])
   equal(migrated.journeyChapterIndex, 0)
 })
 
@@ -128,7 +130,23 @@ test('samostatný postup Cestou Blázna a stav panelu se obnoví', () => {
   equal(restored.journeyChapterIndex, 8)
   equal(restored.journeyHighestChapterIndex, 12)
   equal(restored.studyProgressExpanded, true)
+  deepEqual(restored.favoriteCardIds, ['b'])
   deepEqual(restored.studyProgress, session.studyProgress)
+})
+
+test('režim Karta dne se obnoví bez změny balíčku a předchozího režimu', () => {
+  const storage = new MemoryStorage()
+  const session = { ...createSavedSession(), mode: 'daily' as const }
+
+  saveTrainerState(storage, session)
+  const restored = loadTrainerState(storage, cardIds)
+
+  equal(restored.mode, 'daily')
+  equal(restored.previousMode, 'study')
+  deepEqual(restored.deckOrderIds, session.deckOrderIds)
+  equal(restored.currentIndex, session.currentIndex)
+  deepEqual(restored.studyProgress, session.studyProgress)
+  deepEqual(restored.favoriteCardIds, session.favoriteCardIds)
 })
 
 test('poškozený JSON se odstraní a nahradí bezpečným výchozím stavem', () => {

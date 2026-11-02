@@ -2,7 +2,7 @@ export type CardOrientation = 'upright' | 'reversed'
 
 export type ClassicTrainerMode = 'browse' | 'study'
 
-export type TrainerMode = ClassicTrainerMode | 'journey'
+export type TrainerMode = ClassicTrainerMode | 'journey' | 'daily'
 
 export type StudyRating = 'known' | 'practice'
 
@@ -43,4 +43,9 @@ export interface TrainerStateV2 {
   journeyHighestChapterIndex: number
 }
 
-export type TrainerState = TrainerStateV2
+export interface TrainerStateV3 extends Omit<TrainerStateV2, 'version'> {
+  version: 3
+  favoriteCardIds: string[]
+}
+
+export type TrainerState = TrainerStateV3
