@@ -56,7 +56,7 @@ test('Cesta Blázna vybere kapitolu 18 bez přepnutí režimu', async ({ page })
   await page.locator('.picker-card[data-card-id="major-17-star"]').click()
 
   await expect(page.locator('.progress')).toHaveText('18/22')
-  await expect(page.getByRole('button', { name: 'Cesta Blázna' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.desktop-nav button').filter({ hasText: 'Cesta Blázna' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('heading', { name: 'Obnovit důvěru' })).toBeVisible()
   const state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), stateKey)
   expect(state.journeyChapterIndex).toBe(17)
